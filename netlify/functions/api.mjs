@@ -7,6 +7,7 @@ const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 const b32d = (s) => { let bits = "", o = []; for (const c of s) bits += B32.indexOf(c).toString(2).padStart(5, "0"); for (let i = 0; i + 8 <= bits.length; i += 8) o.push(parseInt(bits.slice(i, i + 8), 2)); return Buffer.from(o); };
 const totp = (sec, t) => { const c = Buffer.alloc(8); c.writeBigUInt64BE(BigInt(Math.floor(t / 30000))); const h = crypto.createHmac("sha1", b32d(sec)).update(c).digest(), o = h[19] & 15; return String((h.readUInt32BE(o) & 0x7fffffff) % 1e6).padStart(6, "0"); };
 const okTotp = (sec, c) => [-1, 0, 1].some((d) => totp(sec, Date.now() + d * 30000) === String(c).trim());
+const eh = (e) => crypto.createHash("sha256").update(e).digest("hex").slice(0, 32);
 const id = () => crypto.randomBytes(6).toString("hex");
 // Gmail-SMTP: Netlify env GMAIL_USER (deine Gmail-Adresse) + GMAIL_APP_PASS (16-stelliges App-Passwort)
 const mailOn = () => !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASS);
@@ -25,18 +26,22 @@ export default async (req) => {
   const q = new URL(req.url).searchParams;
   const b = req.method === "POST" ? await req.json().catch(() => ({})) : {};
   const clean = (n) => String(n || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20);
+  // Login/Reset: Benutzername ODER E-Mail (wie bei Discord)
+  const who = async (x) => String(x || "").includes("@") ? ((await get("e/" + eh(String(x).trim().toLowerCase()), "")) || "") : clean(x);
 
   if (a === "reg") {
     const n = clean(b.name);
     if (n.length < 2 || !b.pass || b.pass.length < 4) return J({ error: "Name (min. 2) / Passwort (min. 4)" }, 400);
     if (await get("u/" + n)) return J({ error: "Name vergeben" }, 400);
     const em = String(b.email || "").trim().toLowerCase();
-    if (em && !okMail(em)) return J({ error: "E-Mail ungültig" }, 400);
+    if (!em || !okMail(em)) return J({ error: "Bitte eine gültige E-Mail-Adresse angeben" }, 400);
+    if (await get("e/" + eh(em), "")) return J({ error: "Diese E-Mail ist schon registriert" }, 400);
     const salt = id();
     await put("u/" + n, { name: n, salt, h: hash(b.pass, salt), status: "", bio: "", email: em, color: "#c8102e", avatar: "", banner: "", created: Date.now(), servers: [] });
+    await put("e/" + eh(em), n);
   }
   if (a === "reg" || a === "login") {
-    const n = clean(b.name), u = await get("u/" + n);
+    const n = a === "login" ? await who(b.name) : clean(b.name), u = n ? await get("u/" + n) : null;
     if (!u || u.h !== hash(b.pass || "", u.salt)) return J({ error: "Falsche Daten" }, 401);
     if (u.tfa && !okTotp(u.tfa, b.code)) return J({ error: "2FA-Code nötig" }, 401);
     const t = crypto.randomBytes(24).toString("hex");
@@ -46,7 +51,7 @@ export default async (req) => {
 
   if (a === "forgot") {
     if (!mailOn()) return J({ error: "E-Mail-Versand ist nicht eingerichtet" }, 503);
-    const n = clean(b.name), u = await get("u/" + n);
+    const n = await who(b.name), u = n ? await get("u/" + n) : null;
     if (u && u.email && Date.now() - (await get("rl/" + n, 0)) > 60000) {
       await put("rl/" + n, Date.now());
       const code = String(crypto.randomInt(0, 1e6)).padStart(6, "0"), sl = id();
@@ -56,7 +61,7 @@ export default async (req) => {
     return J({ ok: 1 });
   }
   if (a === "reset") {
-    const n = clean(b.name), r = await get("pr/" + n, null);
+    const n = await who(b.name), r = n ? await get("pr/" + n, null) : null;
     if (!b.pass || b.pass.length < 4) return J({ error: "Passwort min. 4 Zeichen" }, 400);
     if (!r || r.exp < Date.now() || r.tries >= 5) return J({ error: "Code ungültig oder abgelaufen" }, 400);
     if (r.h !== hash(String(b.code || "").trim(), r.s)) { r.tries++; await put("pr/" + n, r); return J({ error: "Code falsch" }, 400); }
@@ -189,9 +194,12 @@ export default async (req) => {
   }
   if (a === "setmail") {
     const em = String(b.email || "").trim().toLowerCase();
-    if (em && !okMail(em)) return J({ error: "E-Mail ungültig" }, 400);
-    if (U.h !== hash(b.pass || "", U.salt)) return J({ error: "Passwort falsch" }, 401);
-    U.email = em; await put("u/" + me, U);
+    if (!em || !okMail(em)) return J({ error: "Bitte eine gültige E-Mail-Adresse angeben" }, 400);
+    if (U.h !== hash(b.pass || "", U.salt)) return J({ error: "Passwort falsch" }, 403);
+    const o = await get("e/" + eh(em), "");
+    if (o && o !== me) return J({ error: "Diese E-Mail ist schon registriert" }, 400);
+    if (U.email && U.email !== em && (await get("e/" + eh(U.email), "")) === me) await st.delete("e/" + eh(U.email));
+    U.email = em; await put("u/" + me, U); await put("e/" + eh(em), me);
     return J({ ok: 1 });
   }
   if (a === "tfa") {
