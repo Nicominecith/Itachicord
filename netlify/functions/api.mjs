@@ -188,7 +188,7 @@ export default async (req) => {
     const s = await get("s/" + b.srv);
     if (!s || s.owner !== me) return J({ error: "Nur Besitzer" }, 403);
     const n = clean(b.name) || "kanal";
-    if (!s.channels.find((c) => c.id === n)) s.channels.push({ id: n, name: n, type: ["text", "forum", "announce", "stage", "media"].includes(b.type) ? b.type : "text" });
+    if (!s.channels.find((c) => c.id === n)) s.channels.push({ id: n, name: n, type: ["text", "voice", "forum", "announce", "stage", "media"].includes(b.type) ? b.type : "text" });
     await put("s/" + s.id, s);
     return J(s);
   }
@@ -203,7 +203,7 @@ export default async (req) => {
     return J({ ok: 1 });
   }
   if (a === "tfa") {
-    if (b.op === "gen") { U.tmp = Array.from(crypto.randomBytes(16), (x) => B32[x % 32]).join(""); await put("u/" + me, U); return J({ secret: U.tmp }); }
+    if (b.op === "gen") { U.tmp = Array.from(crypto.randomBytes(16), (x) => B32[x % 32]).join(""); await put("u/" + me, U); return J({ secret: U.tmp, uri: `otpauth://totp/Itachicord:${me}?secret=${U.tmp}&issuer=Itachicord` }); }
     if (b.op === "on" && U.tmp && okTotp(U.tmp, b.code)) { U.tfa = U.tmp; delete U.tmp; await put("u/" + me, U); return J({ ok: 1 }); }
     if (b.op === "off" && U.tfa && okTotp(U.tfa, b.code)) { delete U.tfa; await put("u/" + me, U); return J({ ok: 1 }); }
     return J({ error: "Code falsch" }, 400);
@@ -259,6 +259,16 @@ export default async (req) => {
     const k = crypto.randomBytes(16).toString("hex");
     await put("h/" + k, { ch: b.ch, name: String(b.name || "Webhook") });
     return J({ url: "/api?a=hook&k=" + k });
+  }
+  if (a === "ring") { const to = clean(b.to); if (!to || !String(b.room).startsWith("dm:") || !(await allowed(b.room))) return J({ error: "forbidden" }, 403); await put("r/" + to, { from: me, room: b.room, t: Date.now() }); return J({ ok: 1 }); }
+  if (a === "rings") { const r = await get("r/" + me, null); return J(r && Date.now() - r.t < 30000 ? r : {}); }
+  if (a === "unring") { await st.delete("r/" + me); return J({ ok: 1 }); }
+  if (a === "ringx") { const to = clean(b.to), r = await get("r/" + to, null); if (r && r.from === me) await st.delete("r/" + to); return J({ ok: 1 }); }
+  if (a === "vlist") {
+    const sv = await get("s/" + b.srv, null); if (!sv || !sv.members.includes(me)) return J({ error: "forbidden" }, 403);
+    const o = {}, now = Date.now();
+    for (const c of sv.channels.filter((c) => c.type === "voice")) { o[c.id] = []; for (const k of (await st.list({ prefix: `v/${sv.id}/${c.id}/` })).blobs) if (now - +(await st.get(k.key)) < 8000) o[c.id].push(k.key.split("/").pop()); }
+    return J(o);
   }
   if (a === "vsync") {
     const room = b.room;
