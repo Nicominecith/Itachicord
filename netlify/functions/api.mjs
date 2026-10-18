@@ -160,7 +160,7 @@ export default async (req) => {
     return J(out);
   }
   if (a === "profile") {
-    for (const k of ["status", "activity", "pron", "dstyle", "entrance", "conn", "bio", "color", "avatar", "banner"]) if (typeof b[k] === "string") U[k] = b[k].slice(0, 700000);
+    for (const k of ["status", "activity", "pron", "dstyle", "entrance", "conn", "bio", "color", "avatar", "banner"]) if (typeof b[k] === "string") U[k] = b[k].slice(0, k === "entrance" || !["avatar", "banner"].includes(k) ? 700000 : 4500000);
     await put("u/" + me, U);
     return J({ ok: 1 });
   }
