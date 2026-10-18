@@ -165,19 +165,15 @@ document.addEventListener("dblclick",e=>{
 new MutationObserver(()=>{if(Q("#vzb")&&!Q("#vg video.vzoom"))vzoomOff()}).observe(document.body,{childList:true,subtree:true});
 
 
-/* ---------- Sprache-Knopf nur in DMs und Sprachkanälen ---------- */
-const _open=window.open_;
-if(typeof _open=="function")window.open_=function(c){
-  const r=_open.apply(this,arguments);
-  try{
-    const b=document.querySelector('#hd button[title="Sprache"]');
-    if(b&&c&&!String(c).startsWith("dm:")){
-      const x=srv&&srv.channels.find(k=>k.id==(String(c).split("/")[1]||"").split("~")[0]);
-      if(!x||x.type!="voice")b.classList.add("hide");
-    }
-  }catch(e){}
-  return r;
-};
+/* ---------- Sprache-Knopf nur in DMs sowie Sprach- und Stage-Kanälen ---------- */
+function callOk(c){
+  if(!c)return true;c=String(c);if(c.startsWith("dm:"))return true;
+  const x=typeof srv!="undefined"&&srv&&srv.channels.find(k=>k.id==(c.split("/")[1]||"").split("~")[0]);
+  return !!x&&(x.type=="voice"||x.type=="stage");
+}
+setInterval(()=>{
+  try{const b=document.querySelector('#hd button[title="Sprache"]');if(b)b.classList.toggle("hide",!callOk(typeof ch!="undefined"?ch:null))}catch(e){}
+},300);
 
 /* ---------- Gebannt: nur lesen ---------- */
 let BN=null;

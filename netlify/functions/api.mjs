@@ -393,7 +393,7 @@ export default async (req) => {
   if (a === "vsync") {
     const room = b.room;
     if (!room || !(await allowed(room))) return J({ error: "forbidden" }, 403);
-    if (!room.startsWith("dm:")) { const sv = await get("s/" + room.split("/")[0], null), c = sv?.channels.find((x) => x.id === (room.split("/")[1] || "").split("~")[0]); if (c?.type !== "voice") return J({ error: "Anrufe gehen nur in Sprachkanälen" }, 400); }
+    if (!room.startsWith("dm:")) { const sv = await get("s/" + room.split("/")[0], null), c = sv?.channels.find((x) => x.id === (room.split("/")[1] || "").split("~")[0]); if (c?.type !== "voice" && c?.type !== "stage") return J({ error: "Anrufe gehen nur in Sprach- und Stage-Kanälen" }, 400); }
     const now = Date.now();
     await st.set(`v/${room}/${me}`, String(now));
     let i = 0;

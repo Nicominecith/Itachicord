@@ -135,7 +135,7 @@ async function cblock(n){await rel("block",n);card(n)}
 const vis=()=>{const mod=isMod();return srv.channels.filter(c=>!(c.view&&!mod&&!(c.view!="mods"&&(srv.roles||{})[ME.name]?.n==c.view)))};
 const chl=()=>{
   const V=vis(),own=isOwn(),cats=[...new Set([...(srv.cats||[]),...V.map(c=>c.cat||"")])].filter(Boolean);
-  const item=c=>`<div class="it ${ch==srv.id+"/"+c.id?"on":""}" onclick="${c.type=="voice"?"vch":"open_"}('${srv.id}/${c.id}','# ${c.name}')">${c.nsfw?"🔞":IC[c.type]||"#"} <span class="nm">${esc(c.name)}</span>${own?`<button class="x gear" title="Kanal bearbeiten" onclick="event.stopPropagation();ssets('ch')">⚙</button>`:""}</div>`+(c.type=="voice"?(VL[c.id]||[]).map(u=>`<div class="it vu">${av(u)}${esc(u)}</div>`).join(""):"");
+  const item=c=>`<div class="it ${ch==srv.id+"/"+c.id?"on":""}" onclick="${c.type=="voice"||c.type=="stage"?"vch":"open_"}('${srv.id}/${c.id}','# ${c.name}')">${c.nsfw?"🔞":IC[c.type]||"#"} <span class="nm">${esc(c.name)}</span>${own?`<button class="x gear" title="Kanal bearbeiten" onclick="event.stopPropagation();ssets('ch')">⚙</button>`:""}</div>`+(c.type=="voice"?(VL[c.id]||[]).map(u=>`<div class="it vu">${av(u)}${esc(u)}</div>`).join(""):"");
   let o=V.filter(c=>!c.cat).map(item).join("");
   for(const k of cats){const col=localStorage["c_"+srv.id+k];o+=`<div class="cat" data-c="${esc(k)}" onclick="tcat(this)"><span>${col?"▸":"▾"} ${esc(k).toUpperCase()}</span>${own?`<button class="x pl" title="Kanal in dieser Kategorie erstellen" onclick="event.stopPropagation();mkch(this.parentNode.dataset.c)">＋</button>`:""}</div>`+(col?"":V.filter(c=>c.cat==k).map(item).join(""))}
   return o||'<div class="dm" style="padding:10px 12px">Keine Kanäle sichtbar.</div>';
