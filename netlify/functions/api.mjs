@@ -134,6 +134,16 @@ export default async (req) => {
     const u = await get("u/" + who); (u.links ||= {}).steam = nm; await put("u/" + who, u);
     return Response.redirect(origin + "/?linked=steam", 302);
   }
+  if (a === "img") {
+    const t = q.get("t"), i = String(q.get("i") || "").replace(/[^\w-]/g, ""), n = clean(q.get("n"));
+    let d = null;
+    if (t === "av" || t === "bn") { const u = await get("u/" + clean(i), null); d = u && (t === "av" ? u.avatar : u.banner); }
+    else if (t === "si") d = (await get("s/" + i, null))?.icon;
+    else if (t === "pa" || t === "pb") { const p = (await get("s/" + i, null))?.prof?.[n]; d = p && (t === "pa" ? p.avatar : p.banner); }
+    const m = /^data:([\w/+.-]+);base64,([\s\S]*)$/.exec(d || "");
+    if (!m) return new Response("", { status: 404, headers: { "cache-control": "public, max-age=60" } });
+    return new Response(Buffer.from(m[2], "base64"), { headers: { "content-type": m[1], "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox" } });
+  }
   const me = await get("t/" + (req.headers.get("x-token") || "x"), null);
   if (!me) return J({ error: "auth" }, 401);
   const U = await get("u/" + me);
@@ -147,21 +157,28 @@ export default async (req) => {
     if (c?.view && s.owner !== me && !(s.mods || []).includes(me) && !(c.view !== "mods" && s.roles?.[me]?.n === c.view)) return false;
     return true;
   };
-  const pub = (u) => ({ name: u.name, status: u.status, activity: u.activity, pron: u.pron, dstyle: u.dstyle, links: u.links, conn: u.conn, created: u.created, bio: u.bio, color: u.color, avatar: u.avatar, banner: u.banner });
+  const pub = (u) => ({ name: u.name, status: u.status, activity: u.activity, pron: u.pron, dstyle: u.dstyle, links: u.links, conn: u.conn, created: u.created, bio: u.bio, color: u.color, hasav: !!u.avatar, avvid: !!u.avatar?.startsWith("data:video"), hasbn: !!u.banner, imv: u.imv || 0 });
+  const srvPub = (s) => {
+    const o = { ...s, icon: undefined, hasicon: !!s.icon };
+    if (s.prof) { o.prof = {}; for (const [k, p] of Object.entries(s.prof)) o.prof[k] = { name: p.name, bio: p.bio, hasav: !!p.avatar, hasbn: !!p.banner, avvid: !!p.avatar?.startsWith("data:video"), v: p.v || 0 }; }
+    return o;
+  };
+  const relOut = () => ({ friends: U.friends || [], fin: U.fin || [], fout: U.fout || [], blocked: U.blocked || [] });
+  const uniq = (l, x) => (l || []).includes(x) ? l : [...(l || []), x];
+  const wo = (l, x) => (l || []).filter((y) => y !== x);
 
   if (a === "me") {
-    const servers = [];
-    for (const sid of U.servers) { const s = await get("s/" + sid); if (s) servers.push(s); }
-    return J({ me: { ...pub(U), email: U.email || "", tfa: !!U.tfa, pst: U.pst || "online", dms: U.dms || [], friends: U.friends || [], blocked: U.blocked || [], entrance: U.entrance }, servers });
+    const servers = (await Promise.all(U.servers.map((sid) => get("s/" + sid, null)))).filter(Boolean).map(srvPub);
+    return J({ me: { ...pub(U), email: U.email || "", tfa: !!U.tfa, pst: U.pst || "online", dms: U.dms || [], ...relOut(), entrance: U.entrance }, servers });
   }
   if (a === "users") {
     const { blobs } = await st.list({ prefix: "u/" });
-    const out = [];
-    for (const x of blobs) { const u = await get(x.key); out.push({ ...pub(u), pres: u.pst === "invisible" || Date.now() - (u.seen || 0) > 90000 ? "offline" : u.pst || "online" }); }
+    const out = (await Promise.all(blobs.map((x) => get(x.key, null)))).filter(Boolean).map((u) => ({ ...pub(u), pres: u.pst === "invisible" || Date.now() - (u.seen || 0) > 90000 ? "offline" : u.pst || "online" }));
     return J(out);
   }
   if (a === "profile") {
     for (const k of ["status", "activity", "pron", "dstyle", "entrance", "conn", "bio", "color", "avatar", "banner"]) if (typeof b[k] === "string") U[k] = b[k].slice(0, k === "entrance" || !["avatar", "banner"].includes(k) ? 700000 : 4500000);
+    if (b.avatar || b.banner) U.imv = Date.now();
     await put("u/" + me, U);
     return J({ ok: 1 });
   }
@@ -183,15 +200,38 @@ export default async (req) => {
     await put("s/" + s.id, s);
     if (!U.servers.includes(s.id)) U.servers.push(s.id);
     await put("u/" + me, U);
-    return J(s);
+    return J(srvPub(s));
   }
   if (a === "mkch") {
     const s = await get("s/" + b.srv);
     if (!s || s.owner !== me) return J({ error: "Nur Besitzer" }, 403);
     const n = clean(b.name) || "kanal";
-    if (!s.channels.find((c) => c.id === n)) s.channels.push({ id: n, name: n, type: ["text", "voice", "forum", "announce", "stage", "media"].includes(b.type) ? b.type : "text" });
+    if (s.channels.find((c) => c.id === n)) return J({ error: "Kanal existiert schon" }, 400);
+    if (s.channels.length >= 100) return J({ error: "Max. 100 Kanäle" }, 400);
+    const cat = String(b.cat || "").trim().slice(0, 20), ch = { id: n, name: n, type: ["text", "voice", "forum", "announce", "stage", "media"].includes(b.type) ? b.type : "text" };
+    if (cat) { ch.cat = cat; if (!(s.cats || []).includes(cat)) (s.cats ||= []).push(cat); }
+    s.channels.push(ch);
     await put("s/" + s.id, s);
-    return J(s);
+    return J(srvPub(s));
+  }
+  if (a === "leave") {
+    const s = await get("s/" + b.srv, null);
+    if (!s || !s.members.includes(me)) return J({ error: "nf" }, 404);
+    if (s.owner === me) return J({ error: "Besitzer können nicht gehen – übertrage den Server oder lösche ihn" }, 400);
+    s.members = wo(s.members, me); s.mods = wo(s.mods, me); if (s.roles) delete s.roles[me];
+    (s.log ||= []).push({ t: Date.now(), u: me, x: "hat den Server verlassen" });
+    U.servers = wo(U.servers, s.id);
+    await Promise.all([put("s/" + s.id, s), put("u/" + me, U)]);
+    return J({ ok: 1 });
+  }
+  if (a === "delsrv") {
+    const s = await get("s/" + b.srv, null);
+    if (!s || s.owner !== me) return J({ error: "Nur Besitzer" }, 403);
+    if (String(b.confirm || "") !== s.name) return J({ error: "Servername stimmt nicht überein" }, 400);
+    await Promise.all(s.members.map(async (m) => { const u = await get("u/" + m, null); if (u) { u.servers = wo(u.servers, s.id); await put("u/" + m, u); } }));
+    const { blobs } = await st.list({ prefix: `m/${s.id}/` });
+    await Promise.all([...blobs.map((k) => st.delete(k.key)), st.delete("s/" + s.id)]);
+    return J({ ok: 1 });
   }
   if (a === "setmail") {
     const em = String(b.email || "").trim().toLowerCase();
@@ -212,17 +252,46 @@ export default async (req) => {
   if (a === "pst") { if (["online", "dnd", "invisible"].includes(b.v)) { U.pst = b.v; U.seen = Date.now(); await put("u/" + me, U); } return J({ ok: 1 }); }
   if (a === "dmx") { U.dms = (U.dms || []).filter((x) => x !== clean(b.target)); await put("u/" + me, U); return J({ ok: 1 }); }
   if (a === "rel") {
-    const t = clean(b.target), k = b.op === "block" ? "blocked" : "friends";
-    if (t === me || !(await get("u/" + t, null))) return J({ error: "?" }, 400);
-    U[k] ||= []; U[k] = U[k].includes(t) ? U[k].filter((x) => x !== t) : [...U[k], t];
+    // Nur noch Blockieren/Entsperren – Freunde laufen über Anfragen (frq/fac/fdec/frm)
+    const t = clean(b.target);
+    if (b.op !== "block" || t === me || !(await get("u/" + t, null))) return J({ error: "?" }, 400);
+    if ((U.blocked || []).includes(t)) U.blocked = wo(U.blocked, t);
+    else {
+      U.blocked = uniq(U.blocked, t); U.friends = wo(U.friends, t); U.fin = wo(U.fin, t); U.fout = wo(U.fout, t);
+      const T = await get("u/" + t, null);
+      if (T) { T.friends = wo(T.friends, me); T.fin = wo(T.fin, me); T.fout = wo(T.fout, me); await put("u/" + t, T); }
+    }
     await put("u/" + me, U);
-    return J({ friends: U.friends || [], blocked: U.blocked || [] });
+    return J(relOut());
+  }
+  if (a === "rels") return J(relOut());
+  if ([ "frq", "fac", "fdec", "frm" ].includes(a)) {
+    const t = clean(b.target);
+    if (!t || t === me) return J({ error: "Das bist du selbst" }, 400);
+    const T = await get("u/" + t, null);
+    if (!T) return J({ error: "Nutzer nicht gefunden" }, 404);
+    const accept = () => { U.friends = uniq(U.friends, t); T.friends = uniq(T.friends, me); U.fin = wo(U.fin, t); U.fout = wo(U.fout, t); T.fin = wo(T.fin, me); T.fout = wo(T.fout, me); };
+    let auto = false;
+    if (a === "frq") {
+      if ((U.friends || []).includes(t)) return J({ error: "Ihr seid schon befreundet" }, 400);
+      if ((U.blocked || []).includes(t)) return J({ error: "Du hast diesen Nutzer blockiert – erst entsperren" }, 400);
+      if ((T.blocked || []).includes(me)) return J({ error: "Anfrage konnte nicht gesendet werden" }, 403);
+      if ((U.fout || []).includes(t)) return J({ error: "Anfrage wurde schon gesendet" }, 400);
+      if ((U.fout || []).length >= 100) return J({ error: "Zu viele offene Anfragen" }, 429);
+      if ((U.fin || []).includes(t)) { accept(); auto = true; }
+      else { U.fout = uniq(U.fout, t); T.fin = uniq(T.fin, me); }
+    } else if (a === "fac") {
+      if (!(U.fin || []).includes(t)) return J({ error: "Keine Anfrage von diesem Nutzer" }, 400);
+      accept();
+    } else if (a === "fdec") { U.fin = wo(U.fin, t); U.fout = wo(U.fout, t); T.fin = wo(T.fin, me); T.fout = wo(T.fout, me); }
+    else { U.friends = wo(U.friends, t); T.friends = wo(T.friends, me); }
+    await Promise.all([put("u/" + me, U), put("u/" + t, T)]);
+    return J({ ...relOut(), auto });
   }
   if (a === "export") return J({ ...U, h: undefined, salt: undefined, tfa: undefined, tmp: undefined });
   if (a === "discover") {
-    const o = [];
-    for (const x of (await st.list({ prefix: "s/" })).blobs) { const sv = await get(x.key); if (sv.public) o.push({ id: sv.id, name: sv.name, n: sv.members.length }); }
-    return J(o);
+    const all = await Promise.all((await st.list({ prefix: "s/" })).blobs.map((x) => get(x.key, null)));
+    return J(all.filter((sv) => sv && sv.public).map((sv) => ({ id: sv.id, name: sv.name, n: sv.members.length, icon: sv.icon ? "/api?a=img&t=si&i=" + sv.id + "&v=" + (sv.iv || 0) : "" })));
   }
   if (a === "onb") {
     const sv = await get("s/" + b.srv, null);
@@ -245,7 +314,7 @@ export default async (req) => {
     const sv = await get("s/" + b.srv, null);
     if (!sv || !sv.members.includes(me)) return J({ error: "nf" }, 404);
     if ([b.avatar, b.banner].some((x) => x && x.length > 300000)) return J({ error: "Bild max. ~200 KB" }, 400);
-    (sv.prof ||= {})[me] = { name: String(b.name || "").slice(0, 32), bio: String(b.bio || "").slice(0, 200), avatar: b.avatar || "", banner: b.banner || "" };
+    (sv.prof ||= {})[me] = { name: String(b.name || "").slice(0, 32), bio: String(b.bio || "").slice(0, 200), avatar: b.avatar || "", banner: b.banner || "", v: Date.now() };
     await put("s/" + sv.id, sv);
     return J({ ok: 1 });
   }
@@ -292,41 +361,70 @@ export default async (req) => {
   if (a === "mod") {
     const s = await get("s/" + b.srv);
     if (!s) return J({ error: "nf" }, 404);
-    if (s.owner !== me && !(s.mods || []).includes(me)) return J({ error: "Keine Rechte" }, 403);
+    const own = s.owner === me;
+    if (!own && !(s.mods || []).includes(me)) return J({ error: "Keine Rechte" }, 403);
     const t = clean(b.target), op = b.op, v = b.val; s.log ||= [];
     const lg = (x) => s.log.push({ t: Date.now(), u: me, x });
+    const ch = () => s.channels.find((x) => x.id === clean(b.ch));
+    const roleOf = (n) => Object.keys(s.roles || {}).filter((m) => s.roles[m].n === n);
     if (["kick", "ban", "timeout"].includes(op)) {
       if (t === s.owner || !s.members.includes(t)) return J({ error: "Ungültiges Ziel" }, 400);
-      if (op === "timeout") (s.to ||= {})[t] = Date.now() + 60000 * (+v || 10);
+      if (!own && (s.mods || []).includes(t)) return J({ error: "Mods können keine Mods bestrafen" }, 403);
+      if (op === "timeout") (s.to ||= {})[t] = Date.now() + 60000 * Math.min(40320, +v || 10);
       else {
-        s.members = s.members.filter((x) => x !== t);
-        const tu = await get("u/" + t); tu.servers = tu.servers.filter((x) => x !== s.id); await put("u/" + t, tu);
-        if (op === "ban") (s.bans ||= []).push(t);
+        s.members = wo(s.members, t); s.mods = wo(s.mods, t); if (s.roles) delete s.roles[t];
+        const tu = await get("u/" + t, null); if (tu) { tu.servers = wo(tu.servers, s.id); await put("u/" + t, tu); }
+        if (op === "ban") s.bans = uniq(s.bans, t);
       }
       lg(op + " " + t);
-    } else if (s.owner !== me) return J({ error: "Nur Besitzer" }, 403);
-    else if (op === "mod") { s.mods ||= []; s.mods = s.mods.includes(t) ? s.mods.filter((x) => x !== t) : [...s.mods, t]; lg("mod " + t); }
+    } else if (op === "unban") { s.bans = wo(s.bans, t); lg("unban " + t); }
+    else if (op === "untimeout") { if (s.to) delete s.to[t]; lg("timeout aufgehoben " + t); }
+    else if (!own) return J({ error: "Nur Besitzer" }, 403);
+    else if (op === "mod") { if (t === s.owner || !s.members.includes(t)) return J({ error: "Ungültiges Ziel" }, 400); s.mods = (s.mods || []).includes(t) ? wo(s.mods, t) : [...(s.mods || []), t]; lg("mod " + t); }
+    else if (op === "transfer") { if (t === me || !s.members.includes(t)) return J({ error: "Ungültiges Ziel" }, 400); s.owner = t; s.mods = wo(s.mods, t); lg("besitz an " + t + " übertragen"); }
+    else if (op === "rename") { const n = String(v || "").trim().slice(0, 40); if (!n) return J({ error: "Name fehlt" }, 400); s.name = n; lg("server umbenannt: " + n); }
+    else if (op === "icon") { if (!b.data) { delete s.icon; } else { if (!/^data:image\//.test(b.data) || b.data.length > 150000) return J({ error: "Icon zu groß (max ~100 KB)" }, 400); s.icon = b.data; } s.iv = Date.now(); lg("server-icon"); }
     else if (op === "slow") { (s.slow ||= {})[clean(b.ch)] = Math.min(21600, +v || 0); lg("slowmode " + b.ch + " " + v + "s"); }
     else if (op === "words") { s.words = String(v).toLowerCase().split(",").map((x) => x.trim()).filter(Boolean); lg("automod aktualisiert"); }
-    else if (op === "role") { (s.roles ||= {})[t] = { n: String(b.n || "").slice(0, 20), c: b.c || "#c8102e" }; lg("rolle " + t); }
+    else if (op === "role") { if (!s.members.includes(t)) return J({ error: "Ungültiges Ziel" }, 400); (s.roles ||= {})[t] = { n: String(b.n || "").slice(0, 20), c: /^#[0-9a-f]{6}$/i.test(b.c) ? b.c : "#c8102e" }; lg("rolle " + t); }
+    else if (op === "rmrole") { if (s.roles) delete s.roles[t]; lg("rolle entfernt " + t); }
+    else if (op === "delrole") { for (const m of roleOf(String(v))) delete s.roles[m]; lg("rolle gelöscht " + v); }
     else if (op === "cmd") { const [n, ...r] = String(v).split("="); (s.cmds ||= {})[clean(n)] = r.join("=").slice(0, 500); lg("command /" + n); }
+    else if (op === "delcmd") { if (s.cmds) delete s.cmds[clean(v)]; lg("command gelöscht /" + v); }
     else if (op === "emoji") { if (!b.data || b.data.length > 150000) return J({ error: "Bild zu groß (max 100 KB)" }, 400); (s.emoji ||= {})[clean(v)] = b.data; lg("emoji " + v); }
+    else if (op === "delemoji") { if (s.emoji) delete s.emoji[clean(v)]; lg("emoji gelöscht " + v); }
+    else if (op === "sound") { if (!b.data || b.data.length > 250000) return J({ error: "Audio zu groß (max ~180 KB)" }, 400); (s.sounds ||= {})[clean(v)] = b.data; lg("sound " + v); }
+    else if (op === "delsound") { if (s.sounds) delete s.sounds[clean(v)]; lg("sound gelöscht " + v); }
     else if (op === "minage") { s.minage = Math.max(0, +v || 0); lg("verifizierung " + s.minage + " min"); }
     else if (op === "raid") { s.raid = !s.raid; s.lock = 0; lg("raid-schutz " + s.raid); }
     else if (op === "onboarding") { const [qq, os] = String(v).split("|"); s.onb = qq ? { q: qq.slice(0, 100), opts: String(os || "").split(",").map((x) => x.trim().slice(0, 20)).filter(Boolean).slice(0, 8) } : null; lg("onboarding"); }
-    else if (["chperm", "cat", "nsfw"].includes(op)) {
-      const c = s.channels.find((x) => x.id === clean(b.ch)); if (!c) return J({ error: "Kanal nicht gefunden" }, 400);
-      if (op === "nsfw") c.nsfw = !c.nsfw; else if (op === "cat") c.cat = String(v).slice(0, 20);
-      else { const [k, w] = String(v).split(":"); if (["view", "write"].includes(k)) c[k] = !w || w === "all" ? undefined : w.slice(0, 20); }
-      lg(op + " " + c.id);
+    else if (op === "chperm") {
+      const c = ch(); if (!c) return J({ error: "Kanal nicht gefunden" }, 400);
+      const [k, w] = String(v).split(":"); if (["view", "write"].includes(k)) c[k] = !w || w === "all" ? undefined : w.slice(0, 20);
+      lg("rechte " + c.id);
     }
-    else if (op === "sound") { if (!b.data || b.data.length > 250000) return J({ error: "Audio zu groß (max ~180 KB)" }, 400); (s.sounds ||= {})[clean(v)] = b.data; lg("sound " + v); }
-    else if (op === "event") { const [t0, w] = String(v).split("|"); (s.events ||= []).push({ title: t0.slice(0, 60), time: w || "" }); s.events = s.events.slice(-20); lg("event " + t0); }
+    else if (op === "nsfw") { const c = ch(); if (!c) return J({ error: "Kanal nicht gefunden" }, 400); c.nsfw = !c.nsfw; lg("nsfw " + c.id); }
+    else if (op === "cat") { const c = ch(); if (!c) return J({ error: "Kanal nicht gefunden" }, 400); c.cat = String(v || "").slice(0, 20); if (c.cat && !(s.cats || []).includes(c.cat)) (s.cats ||= []).push(c.cat); lg("kategorie " + c.id); }
+    else if (op === "chname") { const c = ch(); if (!c) return J({ error: "Kanal nicht gefunden" }, 400); c.name = String(v || "").trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9_\-äöüß]/g, "").slice(0, 30) || c.name; lg("kanal umbenannt " + c.id); }
+    else if (op === "delch") {
+      const c = ch(); if (!c) return J({ error: "Kanal nicht gefunden" }, 400);
+      if (s.channels.length <= 1) return J({ error: "Mindestens ein Kanal muss bleiben" }, 400);
+      s.channels = s.channels.filter((x) => x !== c);
+      const { blobs } = await st.list({ prefix: `m/${s.id}/${c.id}` });
+      await Promise.all(blobs.filter((k) => k.key === `m/${s.id}/${c.id}` || k.key.startsWith(`m/${s.id}/${c.id}~`)).map((k) => st.delete(k.key)));
+      lg("kanal gelöscht " + c.id);
+    }
+    else if (op === "mkcat") { const n = String(v || "").trim().slice(0, 20); if (!n) return J({ error: "Name fehlt" }, 400); if ((s.cats || []).length >= 30) return J({ error: "Max. 30 Kategorien" }, 400); s.cats = uniq(s.cats, n); lg("kategorie erstellt " + n); }
+    else if (op === "rencat") { const n = String(b.n || "").trim().slice(0, 20); if (!n) return J({ error: "Name fehlt" }, 400); s.cats = uniq(wo(s.cats, v), n); s.channels.forEach((c) => { if (c.cat === v) c.cat = n; }); lg("kategorie " + v + " → " + n); }
+    else if (op === "delcat") { s.cats = wo(s.cats, v); s.channels.forEach((c) => { if (c.cat === v) c.cat = ""; }); lg("kategorie gelöscht " + v); }
+    else if (op === "event") { const [t0, w] = String(v).split("|"); if (!t0.trim()) return J({ error: "Titel fehlt" }, 400); (s.events ||= []).push({ title: t0.slice(0, 60), time: w || "" }); s.events = s.events.slice(-20); lg("event " + t0); }
+    else if (op === "delevent") { (s.events ||= []).splice(+v, 1); lg("event gelöscht"); }
     else if (op === "public") { s.public = !s.public; lg("öffentlich: " + s.public); }
     else if (op === "welcome") { s.welcome = String(v).slice(0, 300); lg("willkommenstext"); }
+    else return J({ error: "Unbekannte Aktion" }, 400);
     s.log = s.log.slice(-100);
     await put("s/" + s.id, s);
-    return J(s);
+    return J(srvPub(s));
   }
   if (a === "msgs") {
     const ch = q.get("ch");
