@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import crypto from "node:crypto";
+import nodemailer from "nodemailer";
 const J = (d, c = 200) => new Response(JSON.stringify(d), { status: c, headers: { "content-type": "application/json" } });
 const hash = (p, s) => crypto.scryptSync(p, s, 32).toString("hex");
 const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -7,6 +8,13 @@ const b32d = (s) => { let bits = "", o = []; for (const c of s) bits += B32.inde
 const totp = (sec, t) => { const c = Buffer.alloc(8); c.writeBigUInt64BE(BigInt(Math.floor(t / 30000))); const h = crypto.createHmac("sha1", b32d(sec)).update(c).digest(), o = h[19] & 15; return String((h.readUInt32BE(o) & 0x7fffffff) % 1e6).padStart(6, "0"); };
 const okTotp = (sec, c) => [-1, 0, 1].some((d) => totp(sec, Date.now() + d * 30000) === String(c).trim());
 const id = () => crypto.randomBytes(6).toString("hex");
+// Gmail-SMTP: Netlify env GMAIL_USER (deine Gmail-Adresse) + GMAIL_APP_PASS (16-stelliges App-Passwort)
+const mailOn = () => !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASS);
+const mail = async (to, subject, text) => {
+  const t = nodemailer.createTransport({ service: "gmail", auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASS.replace(/\s/g, "") } });
+  await t.sendMail({ from: `Itachicord <${process.env.GMAIL_USER}>`, to, subject, text });
+};
+const okMail = (e) => e.length <= 120 && /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(e);
 export const config = { path: "/api" };
 
 export default async (req) => {
@@ -22,8 +30,10 @@ export default async (req) => {
     const n = clean(b.name);
     if (n.length < 2 || !b.pass || b.pass.length < 4) return J({ error: "Name (min. 2) / Passwort (min. 4)" }, 400);
     if (await get("u/" + n)) return J({ error: "Name vergeben" }, 400);
+    const em = String(b.email || "").trim().toLowerCase();
+    if (em && !okMail(em)) return J({ error: "E-Mail ungültig" }, 400);
     const salt = id();
-    await put("u/" + n, { name: n, salt, h: hash(b.pass, salt), status: "", bio: "", color: "#c8102e", avatar: "", banner: "", created: Date.now(), servers: [] });
+    await put("u/" + n, { name: n, salt, h: hash(b.pass, salt), status: "", bio: "", email: em, color: "#c8102e", avatar: "", banner: "", created: Date.now(), servers: [] });
   }
   if (a === "reg" || a === "login") {
     const n = clean(b.name), u = await get("u/" + n);
@@ -32,6 +42,29 @@ export default async (req) => {
     const t = crypto.randomBytes(24).toString("hex");
     await put("t/" + t, n);
     return J({ token: t });
+  }
+
+  if (a === "forgot") {
+    if (!mailOn()) return J({ error: "E-Mail-Versand ist nicht eingerichtet" }, 503);
+    const n = clean(b.name), u = await get("u/" + n);
+    if (u && u.email && Date.now() - (await get("rl/" + n, 0)) > 60000) {
+      await put("rl/" + n, Date.now());
+      const code = String(crypto.randomInt(0, 1e6)).padStart(6, "0"), sl = id();
+      await put("pr/" + n, { h: hash(code, sl), s: sl, exp: Date.now() + 15 * 60000, tries: 0 });
+      try { await mail(u.email, "Itachicord – Passwort zurücksetzen", `Hallo ${n},\n\ndein Code zum Zurücksetzen: ${code}\n\nEr ist 15 Minuten gültig. Warst du das nicht, ignoriere diese Mail einfach.`); } catch (e) { console.error("mail", e.message); }
+    }
+    return J({ ok: 1 });
+  }
+  if (a === "reset") {
+    const n = clean(b.name), r = await get("pr/" + n, null);
+    if (!b.pass || b.pass.length < 4) return J({ error: "Passwort min. 4 Zeichen" }, 400);
+    if (!r || r.exp < Date.now() || r.tries >= 5) return J({ error: "Code ungültig oder abgelaufen" }, 400);
+    if (r.h !== hash(String(b.code || "").trim(), r.s)) { r.tries++; await put("pr/" + n, r); return J({ error: "Code falsch" }, 400); }
+    const u = await get("u/" + n);
+    if (!u) return J({ error: "Code ungültig oder abgelaufen" }, 400);
+    u.salt = id(); u.h = hash(b.pass, u.salt);
+    await put("u/" + n, u); await st.delete("pr/" + n);
+    return J({ ok: 1 });
   }
 
   if (a === "hook") {
@@ -113,7 +146,7 @@ export default async (req) => {
   if (a === "me") {
     const servers = [];
     for (const sid of U.servers) { const s = await get("s/" + sid); if (s) servers.push(s); }
-    return J({ me: { ...pub(U), tfa: !!U.tfa, friends: U.friends || [], blocked: U.blocked || [], entrance: U.entrance }, servers });
+    return J({ me: { ...pub(U), email: U.email || "", tfa: !!U.tfa, friends: U.friends || [], blocked: U.blocked || [], entrance: U.entrance }, servers });
   }
   if (a === "users") {
     const { blobs } = await st.list({ prefix: "u/" });
@@ -153,6 +186,13 @@ export default async (req) => {
     if (!s.channels.find((c) => c.id === n)) s.channels.push({ id: n, name: n, type: ["text", "forum", "announce", "stage", "media"].includes(b.type) ? b.type : "text" });
     await put("s/" + s.id, s);
     return J(s);
+  }
+  if (a === "setmail") {
+    const em = String(b.email || "").trim().toLowerCase();
+    if (em && !okMail(em)) return J({ error: "E-Mail ungültig" }, 400);
+    if (U.h !== hash(b.pass || "", U.salt)) return J({ error: "Passwort falsch" }, 401);
+    U.email = em; await put("u/" + me, U);
+    return J({ ok: 1 });
   }
   if (a === "tfa") {
     if (b.op === "gen") { U.tmp = Array.from(crypto.randomBytes(16), (x) => B32[x % 32]).join(""); await put("u/" + me, U); return J({ secret: U.tmp }); }
