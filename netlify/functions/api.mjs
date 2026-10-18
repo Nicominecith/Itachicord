@@ -137,6 +137,7 @@ export default async (req) => {
   const me = await get("t/" + (req.headers.get("x-token") || "x"), null);
   if (!me) return J({ error: "auth" }, 401);
   const U = await get("u/" + me);
+  if (U && Date.now() - (U.seen || 0) > 30000) { U.seen = Date.now(); await put("u/" + me, U); }
 
   const allowed = async (ch) => {
     if (ch.startsWith("dm:")) return ch.split(":").slice(1).includes(me);
@@ -151,12 +152,12 @@ export default async (req) => {
   if (a === "me") {
     const servers = [];
     for (const sid of U.servers) { const s = await get("s/" + sid); if (s) servers.push(s); }
-    return J({ me: { ...pub(U), email: U.email || "", tfa: !!U.tfa, friends: U.friends || [], blocked: U.blocked || [], entrance: U.entrance }, servers });
+    return J({ me: { ...pub(U), email: U.email || "", tfa: !!U.tfa, pst: U.pst || "online", dms: U.dms || [], friends: U.friends || [], blocked: U.blocked || [], entrance: U.entrance }, servers });
   }
   if (a === "users") {
     const { blobs } = await st.list({ prefix: "u/" });
     const out = [];
-    for (const x of blobs) out.push(pub(await get(x.key)));
+    for (const x of blobs) { const u = await get(x.key); out.push({ ...pub(u), pres: u.pst === "invisible" || Date.now() - (u.seen || 0) > 90000 ? "offline" : u.pst || "online" }); }
     return J(out);
   }
   if (a === "profile") {
@@ -208,6 +209,8 @@ export default async (req) => {
     if (b.op === "off" && U.tfa && okTotp(U.tfa, b.code)) { delete U.tfa; await put("u/" + me, U); return J({ ok: 1 }); }
     return J({ error: "Code falsch" }, 400);
   }
+  if (a === "pst") { if (["online", "dnd", "invisible"].includes(b.v)) { U.pst = b.v; U.seen = Date.now(); await put("u/" + me, U); } return J({ ok: 1 }); }
+  if (a === "dmx") { U.dms = (U.dms || []).filter((x) => x !== clean(b.target)); await put("u/" + me, U); return J({ ok: 1 }); }
   if (a === "rel") {
     const t = clean(b.target), k = b.op === "block" ? "blocked" : "friends";
     if (t === me || !(await get("u/" + t, null))) return J({ error: "?" }, 400);
@@ -337,7 +340,8 @@ export default async (req) => {
     if (a === "send") {
       const text = String(b.text || "").slice(0, 4000);
       if (!text && !b.file) return J({ error: "leer" }, 400);
-      if (ch.startsWith("dm:")) { const o = ch.split(":").slice(1).find((n) => n !== me), ou = o && (await get("u/" + o, null)); if (ou?.blocked?.includes(me)) return J({ error: "Du wurdest blockiert" }, 403); }
+      if (ch.startsWith("dm:")) { const o = ch.split(":").slice(1).find((n) => n !== me), ou = o && (await get("u/" + o, null)); if (ou?.blocked?.includes(me)) return J({ error: "Du wurdest blockiert" }, 403);
+        if (ou) { if (!(ou.dms || []).includes(me)) { (ou.dms ||= []).push(me); await put("u/" + o, ou); } if (!(U.dms || []).includes(o)) { (U.dms ||= []).push(o); await put("u/" + me, U); } } }
       if (!ch.startsWith("dm:")) {
         const [sid, cid] = ch.split("/"); const sv = await get("s/" + sid), now = Date.now();
         if (sv.bans?.includes(me)) return J({ error: "Gebannt" }, 403);
