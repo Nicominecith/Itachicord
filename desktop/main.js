@@ -1,11 +1,12 @@
 // Desktop-App (Windows/macOS/Linux) mit automatischer Spiele-Erkennung.
 // Start: ITACHICORD_URL=https://deine-seite.netlify.app npm start   |   Installer bauen: npm run dist
 const { app, BrowserWindow } = require("electron");
+const path = require("path");
 const { exec } = require("child_process");
 const URL = process.env.ITACHICORD_URL || "https://DEINE-SEITE.netlify.app";
 const GAMES = { valorant: "Valorant", fortniteclient: "Fortnite", eldenring: "Elden Ring", minecraft: "Minecraft", cs2: "Counter-Strike 2", leagueclient: "League of Legends", dota2: "Dota 2", gta5: "GTA V" }; // beliebig erweitern
 app.whenReady().then(() => {
-  const w = new BrowserWindow({ width: 1280, height: 800, backgroundColor: "#0b0b0e", autoHideMenuBar: true, webPreferences: { backgroundThrottling: false } });
+  const w = new BrowserWindow({ width: 1280, height: 800, backgroundColor: "#09061a", icon: path.join(__dirname, "icon.png"), autoHideMenuBar: true, webPreferences: { backgroundThrottling: false } });
   w.loadURL(URL);
   let last = "";
   setInterval(() => exec(process.platform === "win32" ? "tasklist" : "ps -A -o comm", (e, out) => {

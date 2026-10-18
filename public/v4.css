@@ -1,0 +1,82 @@
+/* ===== Itachicord v4: Logo, Hintergrundbild, Zoom, Kontextmenü, Bann-Anzeige, Feinschliff ===== */
+
+/* --- Splash / Ladebildschirm mit App-Logo --- */
+#boot{background:radial-gradient(60vmax 60vmax at 50% 38%,#3b1470 0%,#0d0720 60%,#07040f 100%);gap:20px}
+#boot .lg{width:min(168px,40vw);height:auto;aspect-ratio:1;border-radius:26%;box-shadow:0 24px 80px #c8102e66,0 0 0 1px #ffffff1f;animation:lgf 2.8s ease-in-out infinite}
+#boot .ld{width:min(180px,50vw);height:4px;border-radius:4px;background:#ffffff1c;overflow:hidden}
+#boot .ld i{display:block;height:100%;width:40%;border-radius:4px;background:linear-gradient(90deg,#c8102e,#ff7a45,#c8102e);animation:ldb 1.2s ease-in-out infinite}
+@keyframes lgf{50%{transform:translateY(-6px) scale(1.02)}}
+@keyframes ldb{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+#auth .alg{width:92px;height:92px;border-radius:24px;margin:0 auto 2px;display:block;box-shadow:0 14px 44px #c8102e55,0 0 0 1px #ffffff1f}
+
+/* --- Hintergrundbild (Einstellungen > Hintergrundbild) --- */
+body.hasbg::before{background:linear-gradient(rgba(7,4,16,var(--bgdim,.55)),rgba(7,4,16,var(--bgdim,.55))),var(--bgimg) center/cover no-repeat!important}
+body.hasbg #rail,body.hasbg #side,body.hasbg #main{background:color-mix(in srgb,var(--bg2) 46%,transparent)}
+body.hasbg #in{background:color-mix(in srgb,var(--bg3) 62%,transparent)}
+.bgset{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--ln);border-radius:16px;background:#ffffff08}
+.bgset .bgp{height:84px;border-radius:12px;border:1px dashed var(--ln);background:#0006 center/cover no-repeat;display:grid;place-items:center;color:var(--mu);font-size:13px}
+.bgset .bgr{display:flex;gap:8px;flex-wrap:wrap}.bgset .bgr button{flex:1;min-width:120px}
+
+/* --- Nutzer-ID --- */
+.uidrow{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--ln);border-radius:12px;background:#ffffff0a;font-size:13px;color:var(--mu);cursor:copy;user-select:all;-webkit-user-select:all}
+.uidrow b{color:var(--tx);font-variant-numeric:tabular-nums;letter-spacing:.02em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.uidrow:hover{border-color:var(--red);background:#ffffff12}
+.uidrow small{font-size:11px;opacity:.75}
+
+/* --- Rechtsklick-Menü --- */
+#ctxm{position:fixed;z-index:80;min-width:210px;padding:6px;border-radius:16px;background:color-mix(in srgb,var(--bg2) 92%,transparent);border:1px solid var(--ln);box-shadow:0 18px 60px #000b;-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);animation:ctxin .12s ease-out}
+#ctxm button{display:flex;width:100%;align-items:center;gap:10px;text-align:left;border:0;background:none;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600}
+#ctxm button:hover{background:#ffffff14}
+#ctxm hr{border:0;height:1px;background:var(--ln);margin:4px 6px}
+#ctxm .ct{padding:6px 12px 4px;font-size:12px;color:var(--mu);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes ctxin{from{opacity:0;transform:scale(.96) translateY(-3px)}}
+
+/* --- Call: Kamera/Video vergrößern --- */
+#vg video{cursor:zoom-in;transition:transform .15s,box-shadow .15s}
+#vg video:hover{box-shadow:0 0 0 2px var(--red)}
+#vg video.vzoom{position:fixed!important;inset:max(3vh,env(safe-area-inset-top)) 3vw max(3vh,env(safe-area-inset-bottom)) 3vw;width:94vw!important;height:auto!important;max-height:94vh;margin:auto;z-index:70;object-fit:contain!important;aspect-ratio:auto!important;background:#000;border-radius:20px!important;cursor:zoom-out;box-shadow:0 30px 120px #000!important}
+#vzb{position:fixed;inset:0;z-index:69;background:#000d;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#vzc{position:fixed;z-index:71;top:max(14px,env(safe-area-inset-top));right:14px;display:flex;gap:8px}
+#vzc button{width:44px;height:44px;border-radius:50%;padding:0;font-size:18px;background:#000a}
+@media(min-width:1000px){#vp{width:min(760px,58vw);max-width:none}#vg{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}}
+
+/* --- Gebannt: nur lesen --- */
+#banbar{display:none;margin:0 16px 14px;padding:12px 16px;border-radius:16px;border:1px solid #ff5a6e66;background:linear-gradient(135deg,#7a0f2433,#3a0a1d33);color:#ffb3bd;font-weight:600;font-size:14px;line-height:1.4}
+body.banned #banbar{display:block}
+body.banned #in,body.banned #rpb,body.banned #mnb,body.banned .ac,body.banned #vp,body.banned .rx{pointer-events:none}
+body.banned #in{display:none}
+body.banned #rail .ic[onclick*="addSrv"]{display:none}
+
+/* --- Bedienung PC & Tablet --- */
+*{scrollbar-width:thin;scrollbar-color:#ffffff30 transparent}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#ffffff26;border-radius:10px;border:3px solid transparent;background-clip:padding-box}::-webkit-scrollbar-thumb:hover{background:#ffffff44;background-clip:padding-box;border:3px solid transparent}
+:focus-visible{outline:2px solid var(--red2);outline-offset:2px;border-radius:10px}
+button,.it,.ic,.rx{user-select:none;-webkit-user-select:none}
+.it{padding:9px 12px;border-radius:12px;transition:background .15s,color .15s}
+.it.on{background:linear-gradient(90deg,#8b5cf633,#6366f122);color:#fff}
+.m .ac{background:var(--bg3);border:1px solid var(--ln);border-radius:12px;padding:3px;box-shadow:0 8px 24px #0009}
+.m .ac button{border:0;border-radius:8px;min-width:30px;height:28px}
+.card{max-width:min(520px,94vw)}
+#modal .card{width:min(520px,94vw)}
+#modal .card h3{font-size:19px}
+#msgs{scroll-behavior:smooth}
+@media(min-width:1025px){
+  #msgs{padding-left:max(20px,calc((100% - 1040px)/2));padding-right:max(20px,calc((100% - 1040px)/2))}
+  #in{width:min(1040px,calc(100% - 40px));margin-left:auto;margin-right:auto}
+  .ic:hover::after{content:attr(title);position:absolute;left:calc(100% + 14px);top:50%;transform:translateY(-50%);white-space:nowrap;padding:6px 10px;border-radius:10px;background:#000d;color:#fff;font-size:13px;font-weight:600;pointer-events:none;z-index:30}
+}
+@media(min-width:701px) and (max-width:1100px){
+  :root{--ico:44px}
+  body{gap:8px;padding:8px}
+  #side{width:232px}
+  #hd{padding:12px 14px}
+  #hd button,.hs button{min-width:var(--ico)}
+  #msgs{padding:10px 14px}
+  .it{min-height:44px}
+  #in{margin:0 10px 10px}
+  .card{padding:22px}
+  .lb{display:inline}
+  #hd>b{font-size:15px}
+}
+@media(hover:none){.ic,.it,button{min-height:42px}.m .ac{display:none}.m.t .ac{display:flex}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}

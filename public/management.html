@@ -1,0 +1,100 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Itachicord · Management</title>
+<link rel="manifest" href="/manifest.json"><link rel="icon" type="image/png" href="/favicon-64.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#09061a">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--red:#8b5cf6;--red2:#c4a3ff;--bg:#09061a;--bg2:#130d2b;--bg3:#201742;--tx:#efeaff;--mu:#a099c4;--ln:#ffffff17;--bad:#ff5a6e;--ok:#4ade80}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;color:var(--tx);font:15px/1.45 "Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(42vmax 42vmax at 10% 10%,#7c3aed70,transparent 62%),radial-gradient(38vmax 38vmax at 92% 6%,#c8102e40,transparent 62%),var(--bg);padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 40px max(14px,env(safe-area-inset-left))}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;background:#ffffff0f;border:1px solid var(--ln);border-radius:12px;padding:9px 14px;font-weight:600;transition:.15s}
+button:hover{background:#ffffff1c;border-color:var(--red)}button:active{transform:scale(.97)}button:disabled{opacity:.45;pointer-events:none}
+button.bad{border-color:#ff5a6e66;color:#ffb3bd}button.bad:hover{background:#ff5a6e22;border-color:var(--bad)}
+button.ok{border-color:#4ade8066;color:#b9f6cf}
+input{width:100%;background:#ffffff0d;border:1px solid var(--ln);border-radius:12px;padding:11px 14px;outline:0}input:focus{border-color:var(--red)}
+.wrap{max-width:1100px;margin:0 auto}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 18px}
+header img{width:52px;height:52px;border-radius:14px;box-shadow:0 10px 30px #c8102e55}
+header h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(90deg,#fff,var(--red2));-webkit-background-clip:text;background-clip:text;color:transparent}
+header p{margin:0;color:var(--mu);font-size:13px}
+header .sp{flex:1}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.st{padding:14px 16px;border:1px solid var(--ln);border-radius:18px;background:#ffffff0a}.st b{display:block;font-size:26px;font-weight:800}.st span{color:var(--mu);font-size:13px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.bar input{flex:1;min-width:200px}
+.tabs{display:flex;gap:6px}.tabs button.on{background:linear-gradient(135deg,var(--red),#6366f1);border-color:transparent;color:#fff}
+.list{display:flex;flex-direction:column;gap:10px}
+.u{display:grid;grid-template-columns:1fr auto;gap:10px 16px;align-items:center;padding:14px 16px;border:1px solid var(--ln);border-radius:18px;background:#ffffff0a}
+.u.banned{border-color:#ff5a6e55;background:#ff5a6e0f}
+.un{font-weight:800;font-size:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:#ffffff14;color:var(--mu)}.tag.b{background:#ff5a6e2e;color:#ffb3bd}.tag.a{background:#8b5cf633;color:var(--red2)}.tag.on{background:#4ade8026;color:#b9f6cf}
+.um{color:var(--mu);font-size:13px;margin-top:3px;word-break:break-word}
+.uid{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:10px;border:1px solid var(--ln);background:#ffffff0a;font-variant-numeric:tabular-nums;font-size:12.5px;cursor:copy;user-select:all}.uid:hover{border-color:var(--red)}
+.act{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.empty{padding:40px;text-align:center;color:var(--mu)}
+#gate{padding:60px 16px;text-align:center}#gate img{width:96px;border-radius:24px;margin-bottom:12px}
+.dlg{position:fixed;inset:0;z-index:20;background:#000c;display:grid;place-items:center;padding:16px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.dlg .c{width:min(440px,100%);padding:24px;border-radius:24px;background:var(--bg2);border:1px solid var(--ln);box-shadow:0 24px 80px #000;display:flex;flex-direction:column;gap:12px}
+.dlg h3{margin:0;font-size:19px}.dlg p{margin:0;color:var(--mu)}.dlg .r{display:flex;gap:8px;justify-content:flex-end}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--ln);border-left:3px solid var(--red);padding:11px 18px;border-radius:14px;font-weight:600;z-index:30;box-shadow:0 10px 30px #000a}
+.hide{display:none!important}
+@media(max-width:640px){.u{grid-template-columns:1fr}.act{justify-content:flex-start}}
+</style></head><body>
+<div class="wrap">
+<div id="gate"><img src="/logo.png" alt=""><h2 id="gt">Wird geladen …</h2><p id="gs" style="color:var(--mu)"></p><button id="gb" class="hide" onclick="location.href='/'">Zu Itachicord</button></div>
+<div id="app" class="hide">
+<header><img src="/logo.png" alt=""><div><h1>Management</h1><p id="who"></p></div><span class="sp"></span><button onclick="location.href='/'">← Zurück zur App</button><button id="rf">⟳ Aktualisieren</button></header>
+<div class="stats"><div class="st"><b id="s1">0</b><span>Konten</span></div><div class="st"><b id="s2">0</b><span>Online (aktiv)</span></div><div class="st"><b id="s3">0</b><span>Gebannt</span></div><div class="st"><b id="s4">0</b><span>Server</span></div></div>
+<div class="bar"><input id="q" placeholder="Suchen nach Name, ID oder E-Mail …" autocomplete="off"><div class="tabs"><button data-f="all" class="on">Alle</button><button data-f="banned">Gebannt</button></div></div>
+<div class="list" id="ls"></div>
+</div></div>
+<div id="toast" class="hide"></div>
+<script>
+const T=localStorage.t,$=s=>document.querySelector(s),E=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let USERS=[],F="all",ME="";
+const api=async(a,b)=>{const r=await fetch("/api?a="+a,{method:b?"POST":"GET",headers:{"x-token":T||""},body:b?JSON.stringify(b):undefined});const j=await r.json().catch(()=>({error:"Serverfehler"}));j._s=r.status;return j};
+const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.remove("hide");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.add("hide"),3200)};
+const copy=async(t,m)=>{try{await navigator.clipboard.writeText(t)}catch(e){const a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;opacity:0";document.body.append(a);a.select();try{document.execCommand("copy")}catch(_){}a.remove()}toast(m||"Kopiert")};
+function gate(t,s,btn){$("#gt").textContent=t;$("#gs").textContent=s||"";$("#gb").classList.toggle("hide",!btn)}
+function dlg({title,msg,input,ph,ok,bad}){return new Promise(res=>{const d=document.createElement("div");d.className="dlg";d.innerHTML=`<div class="c"><h3>${E(title)}</h3>${msg?`<p>${E(msg)}</p>`:""}${input?`<input placeholder="${E(ph||"")}" autocomplete="off">`:""}<div class="r"><button class="x">Abbrechen</button><button class="k ${bad?"bad":"ok"}">${E(ok||"OK")}</button></div></div>`;document.body.append(d);const i=d.querySelector("input");i&&i.focus();const done=v=>{d.remove();res(v)};d.querySelector(".x").onclick=()=>done(null);d.querySelector(".k").onclick=()=>done(i?i.value:true);d.onclick=e=>{if(e.target==d)done(null)};d.onkeydown=e=>{if(e.key=="Enter")d.querySelector(".k").click();if(e.key=="Escape")done(null)}})}
+const ago=t=>{if(!t)return"nie";const s=(Date.now()-t)/1e3;if(s<90)return"gerade eben";if(s<3600)return Math.floor(s/60)+" Min.";if(s<86400)return Math.floor(s/3600)+" Std.";return new Date(t).toLocaleDateString()};
+function draw(){
+  const q=$("#q").value.trim().toLowerCase(),on=u=>u.pst!="invisible"&&Date.now()-u.seen<90000;
+  $("#s1").textContent=USERS.length;$("#s2").textContent=USERS.filter(on).length;$("#s3").textContent=USERS.filter(u=>u.banned).length;
+  const l=USERS.filter(u=>(F=="all"||u.banned)&&(!q||u.name.includes(q)||u.uid.includes(q)||u.email.toLowerCase().includes(q)));
+  $("#ls").innerHTML=l.length?l.map(u=>`<div class="u ${u.banned?"banned":""}"><div><div class="un">${E(u.name)}${u.admin?'<span class="tag a">Admin</span>':""}${u.banned?'<span class="tag b">Gebannt</span>':""}${on(u)?'<span class="tag on">online</span>':""}${u.tfa?'<span class="tag">2FA</span>':""}</div>
+<div class="um">${u.email?E(u.email)+" · ":""}seit ${new Date(u.created).toLocaleDateString()} · zuletzt aktiv: ${ago(u.seen)} · ${u.servers} Server</div>${u.banned&&u.reason?`<div class="um" style="color:#ffb3bd">Grund: ${E(u.reason)}</div>`:""}
+<span class="uid" data-uid="${u.uid}" title="Klicken oder Rechtsklick: ID kopieren">ID ${u.uid}</span></div>
+<div class="act">${u.admin?"":`<button class="${u.banned?"ok":"bad"}" data-a="ban" data-n="${E(u.name)}">${u.banned?"Entbannen":"Bannen"}</button><button class="bad" data-a="del" data-n="${E(u.name)}">Konto löschen</button>`}</div></div>`).join(""):'<div class="empty">Keine Konten gefunden</div>';
+}
+async function load(){
+  const r=await api("adm_users");
+  if(r.error){gate("Kein Zugriff",r.error,1);$("#app").classList.add("hide");$("#gate").classList.remove("hide");return}
+  USERS=r.users;$("#s4").textContent=r.servers;draw();
+}
+async function boot(){
+  if(!T)return gate("Nicht angemeldet","Bitte melde dich zuerst in Itachicord an.",1);
+  const r=await api("adm_me");
+  if(r.error)return gate("Nicht angemeldet","Bitte melde dich zuerst in Itachicord an.",1);
+  if(!r.admin)return gate("Kein Zugriff","Dein Konto ist kein Admin. Admins stellst du in Netlify mit der Variable ADMIN_USERS ein (oder das älteste Konto ist Admin).",1);
+  ME=r.name;$("#who").textContent="Angemeldet als "+ME;$("#gate").classList.add("hide");$("#app").classList.remove("hide");load();
+}
+$("#q").oninput=draw;$("#rf").onclick=async()=>{await load();toast("Aktualisiert")};
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{F=b.dataset.f;document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x==b));draw()});
+document.addEventListener("click",e=>{const i=e.target.closest(".uid");if(i)copy(i.dataset.uid,"ID kopiert")});
+document.addEventListener("contextmenu",e=>{const i=e.target.closest(".uid");if(i){e.preventDefault();copy(i.dataset.uid,"ID kopiert")}});
+$("#ls").addEventListener("click",async e=>{
+  const b=e.target.closest("button[data-a]");if(!b)return;const n=b.dataset.n,u=USERS.find(x=>x.name==n);if(!u)return;
+  if(b.dataset.a=="ban"){
+    if(u.banned){const r=await api("adm_ban",{name:n,on:false});r.error?toast(r.error):toast(n+" wurde entbannt")}
+    else{const why=await dlg({title:n+" bannen?",msg:"Gebannte Nutzer können nur noch Nachrichten lesen – keine Nachrichten schreiben, keine Server erstellen oder beitreten.",input:1,ph:"Grund (optional)",ok:"Bannen",bad:1});if(why===null)return;const r=await api("adm_ban",{name:n,on:true,reason:why});r.error?toast(r.error):toast(n+" wurde gebannt")}
+  }else{
+    const c=await dlg({title:"Konto „"+n+"“ löschen?",msg:"Das Konto, seine eigenen Server und die Mitgliedschaften werden unwiderruflich gelöscht. Zur Bestätigung den Namen eintippen.",input:1,ph:n,ok:"Endgültig löschen",bad:1});
+    if(c===null)return;if(c.trim().toLowerCase()!=n){return toast("Name stimmt nicht überein")}
+    const r=await api("adm_del",{name:n});r.error?toast(r.error):toast("Konto "+n+" gelöscht");
+  }
+  load();
+});
+boot();setInterval(()=>{if(!$("#app").classList.contains("hide")&&!document.hidden&&!document.querySelector(".dlg"))load()},30000);
+</script></body></html>

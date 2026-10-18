@@ -9,7 +9,7 @@
 5. Handy-App: `cd mobile`, URL in capacitor.config.json eintragen, dann `npm i @capacitor/cli @capacitor/core @capacitor/android @capacitor/ios && npx cap add android`.
 
 ## GIFs (GIPHY)
-Key kostenlos auf https://developers.giphy.com holen (App erstellen > API) und in Netlify als Environment variable `GIPHY_KEY` eintragen, danach neu deployen. Der Key bleibt serverseitig (netlify/functions/giphy.mjs).
+Key auf https://developers.giphy.com holen (App erstellen > API) und in Netlify als Environment variable `GIPHY_KEY` eintragen, danach neu deployen. Der Key bleibt serverseitig (netlify/functions/giphy.mjs).
 
 ## E-Mails über Gmail (Passwort-Reset)
 1. Beim Google-Konto die 2-Schritt-Bestätigung aktivieren (myaccount.google.com > Sicherheit).
@@ -29,3 +29,11 @@ Nutzer können beim Registrieren oder im Profil (📧 E-Mail) eine Adresse hinte
 - **Popups wie bei Discord:** DMs, Erwähnungen, Antworten und Freundschaftsanfragen poppen als Karte auf (Desktop: unten rechts, Handy/Tablet: oben als Banner, 6 s mit Fortschrittsbalken, Hover/Halten pausiert, Klick öffnet den Chat, Wischen schließt). Zusätzlich rote Badges an Server-Icons, DMs und Kanälen sowie `(3)` im Tab-Titel. Ist die App im Hintergrund, kommt eine Systembenachrichtigung (Klick öffnet den richtigen Chat). Server-seitig landen die Ereignisse im Postfach `n/<nutzer>` (`/api?a=inbox`), der Client fragt alle 3 s ab.
 - **Handy/Tablet:** Wisch vom linken Rand öffnet das Menü (Scrim zum Antippen-zum-Schließen funktioniert jetzt), Tastatur schiebt das Eingabefeld auf iOS nicht mehr weg, beim Tippen klappen „+“ und GIF ein, größere Touch-Flächen, Tablet hochkant nutzt das Drawer-Layout mit zentrierter Chat-Spalte.
 - **Grenze:** Systembenachrichtigungen kommen, solange die App/der Tab läuft (auch im Hintergrund). Bei komplett geschlossener App bräuchte es Web-Push (VAPID-Schlüssel + `web-push`) – das ist nicht eingebaut.
+
+## Neu (v4): Logo, Management, Bann, Nutzer-ID, Hintergrundbild
+- **Logo/Icons:** Neues App-Logo (`public/logo.png`, `icon-192/512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, Favicons). Es gibt keine SVG-Grafiken mehr; das Sharingan-Zeichen (`sharingan.png`) ist als zweites App-Icon wählbar. Splash/Ladebildschirm und Anmeldefenster zeigen das Logo. Desktop: `desktop/icon.png`. Handy (Capacitor): `mobile/assets/icon-only.png` + `splash.png` → `npx @capacitor/assets generate`.
+- **Nutzer-ID:** Jeder hat eine feste 18-stellige ID. Zu sehen im Profil (Klick oder Rechtsklick = kopieren). Rechtsklick (am Handy: lange drücken) auf Avatar/Namen öffnet ein Menü: ID kopieren, Name kopieren, Profil, Nachricht.
+- **Management (`/management.html`):** Nur für Admins. Konten suchen (Name, ID, E-Mail), **bannen/entbannen** (Gebannte können nur noch lesen: keine Nachrichten, keine Server erstellen/beitreten, keine Änderungen) und **Konten löschen** (inkl. eigener Server). Admins festlegen: Netlify-Variable `ADMIN_USERS` (Namen, Komma-getrennt). Ohne Variable ist das älteste Konto Admin. Admins sehen im Profil den Knopf „Management öffnen“.
+- **Hintergrundbild:** Profil/Einstellungen → Hintergrundbild (wird pro Gerät gespeichert, Abdunkeln einstellbar).
+- **Call:** Auf ein Video klicken = vergrößern (Esc/Klick schließt), Doppelklick oder ⛶ = Vollbild.
+- **Nicht stören:** Keine Töne mehr (auch Join/Leave/Senden), keine Popups, keine Anrufe.

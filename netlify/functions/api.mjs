@@ -9,6 +9,11 @@ const totp = (sec, t) => { const c = Buffer.alloc(8); c.writeBigUInt64BE(BigInt(
 const okTotp = (sec, c) => [-1, 0, 1].some((d) => totp(sec, Date.now() + d * 30000) === String(c).trim());
 const eh = (e) => crypto.createHash("sha256").update(e).digest("hex").slice(0, 32);
 const id = () => crypto.randomBytes(6).toString("hex");
+const wo = (l, x) => (l || []).filter((y) => y !== x);
+// Feste 18-stellige Nutzer-ID (wie bei Discord) – wird aus Name + Erstellzeit berechnet, braucht keine Migration
+const uidOf = (u) => String(100000000000000000n + (BigInt("0x" + crypto.createHash("sha256").update("itachicord:" + u.name + ":" + (u.created || 0)).digest("hex").slice(0, 14)) % 800000000000000000n));
+// Diese Aktionen darf auch ein gebannter Nutzer (nur lesen)
+const READONLY = ["me", "users", "msgs", "inbox", "rels", "discover", "dl", "export", "vlist", "unring", "vleave", "adm_me"];
 // Gmail-SMTP: Netlify env GMAIL_USER (deine Gmail-Adresse) + GMAIL_APP_PASS (16-stelliges App-Passwort)
 const mailOn = () => !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASS);
 const mail = async (to, subject, text) => {
@@ -147,7 +152,58 @@ export default async (req) => {
   const me = await get("t/" + (req.headers.get("x-token") || "x"), null);
   if (!me) return J({ error: "auth" }, 401);
   const U = await get("u/" + me);
-  if (U && Date.now() - (U.seen || 0) > 30000) { U.seen = Date.now(); await put("u/" + me, U); }
+  if (!U) return J({ error: "auth" }, 401); // Konto wurde gelöscht
+  if (Date.now() - (U.seen || 0) > 30000) { U.seen = Date.now(); await put("u/" + me, U); }
+
+  // ---- Admin / Management ----
+  // Admins: Netlify-Variable ADMIN_USERS (Namen, Komma-getrennt). Ohne Variable ist das älteste Konto Admin.
+  const admins = async () => {
+    const env = String(process.env.ADMIN_USERS || "").split(",").map(clean).filter(Boolean);
+    if (env.length) return env;
+    let f = await get("cfg/admin", null);
+    if (!f) {
+      const { blobs } = await st.list({ prefix: "u/" });
+      const all = (await Promise.all(blobs.map((x) => get(x.key, null)))).filter(Boolean).sort((x, y) => (x.created || 0) - (y.created || 0));
+      f = all[0]?.name || ""; if (f) await put("cfg/admin", f);
+    }
+    return f ? [f] : [];
+  };
+  const IS_ADMIN = (await admins()).includes(me);
+  if (a.startsWith("adm_")) {
+    if (a === "adm_me") return J({ admin: IS_ADMIN, name: me });
+    if (!IS_ADMIN) return J({ error: "Kein Zugriff" }, 403);
+    const adm = await admins();
+    if (a === "adm_users") {
+      const { blobs } = await st.list({ prefix: "u/" });
+      const all = (await Promise.all(blobs.map((x) => get(x.key, null)))).filter(Boolean);
+      const sv = (await st.list({ prefix: "s/" })).blobs.length;
+      return J({ servers: sv, users: all.map((u) => ({ name: u.name, uid: uidOf(u), email: u.email || "", created: u.created || 0, seen: u.seen || 0, pst: u.pst || "online", banned: !!u.banned, reason: u.banreason || "", servers: (u.servers || []).length, admin: adm.includes(u.name), tfa: !!u.tfa, hasav: !!u.avatar })).sort((x, y) => y.created - x.created) });
+    }
+    const tn = clean(b.name), T = tn ? await get("u/" + tn, null) : null;
+    if (!T) return J({ error: "Nutzer nicht gefunden" }, 404);
+    if (adm.includes(T.name)) return J({ error: "Admins können nicht gebannt oder gelöscht werden" }, 400);
+    if (a === "adm_ban") {
+      if (b.on) { T.banned = true; T.banreason = String(b.reason || "").slice(0, 200); T.bannedAt = Date.now(); } else { delete T.banned; delete T.banreason; delete T.bannedAt; }
+      await put("u/" + T.name, T);
+      return J({ ok: 1 });
+    }
+    if (a === "adm_del") {
+      for (const sid of T.servers || []) {
+        const sv = await get("s/" + sid, null); if (!sv) continue;
+        if (sv.owner === T.name) {
+          await Promise.all(sv.members.filter((m) => m !== T.name).map(async (m) => { const u = await get("u/" + m, null); if (u) { u.servers = wo(u.servers, sv.id); await put("u/" + m, u); } }));
+          const { blobs } = await st.list({ prefix: `m/${sv.id}/` });
+          await Promise.all([...blobs.map((k) => st.delete(k.key)), st.delete("s/" + sv.id)]);
+        } else { sv.members = wo(sv.members, T.name); sv.mods = wo(sv.mods, T.name); if (sv.roles) delete sv.roles[T.name]; await put("s/" + sv.id, sv); }
+      }
+      if (T.email && (await get("e/" + eh(T.email), "")) === T.name) await st.delete("e/" + eh(T.email));
+      await Promise.all([st.delete("u/" + T.name), st.delete("n/" + T.name), st.delete("r/" + T.name), st.delete("pr/" + T.name)]);
+      return J({ ok: 1 });
+    }
+    return J({ error: "?" }, 404);
+  }
+  // Gebannte Konten: nur lesen – keine Nachrichten, keine Server, keine Änderungen
+  if (U.banned && !READONLY.includes(a)) return J({ error: "Dein Konto ist gesperrt – du kannst nur noch lesen." + (U.banreason ? " Grund: " + U.banreason : ""), banned: true }, 403);
 
   const allowed = async (ch) => {
     if (ch.startsWith("dm:")) return ch.split(":").slice(1).includes(me);
@@ -157,7 +213,7 @@ export default async (req) => {
     if (c?.view && s.owner !== me && !(s.mods || []).includes(me) && !(c.view !== "mods" && s.roles?.[me]?.n === c.view)) return false;
     return true;
   };
-  const pub = (u) => ({ name: u.name, status: u.status, activity: u.activity, pron: u.pron, dstyle: u.dstyle, links: u.links, conn: u.conn, created: u.created, bio: u.bio, color: u.color, hasav: !!u.avatar, avvid: !!u.avatar?.startsWith("data:video"), hasbn: !!u.banner, imv: u.imv || 0 });
+  const pub = (u) => ({ name: u.name, uid: uidOf(u), status: u.status, activity: u.activity, pron: u.pron, dstyle: u.dstyle, links: u.links, conn: u.conn, created: u.created, bio: u.bio, color: u.color, hasav: !!u.avatar, avvid: !!u.avatar?.startsWith("data:video"), hasbn: !!u.banner, imv: u.imv || 0 });
   const srvPub = (s) => {
     const o = { ...s, icon: undefined, hasicon: !!s.icon };
     if (s.prof) { o.prof = {}; for (const [k, p] of Object.entries(s.prof)) o.prof[k] = { name: p.name, bio: p.bio, hasav: !!p.avatar, hasbn: !!p.banner, avvid: !!p.avatar?.startsWith("data:video"), v: p.v || 0 }; }
@@ -165,11 +221,10 @@ export default async (req) => {
   };
   const relOut = () => ({ friends: U.friends || [], fin: U.fin || [], fout: U.fout || [], blocked: U.blocked || [] });
   const uniq = (l, x) => (l || []).includes(x) ? l : [...(l || []), x];
-  const wo = (l, x) => (l || []).filter((y) => y !== x);
 
   if (a === "me") {
     const servers = (await Promise.all(U.servers.map((sid) => get("s/" + sid, null)))).filter(Boolean).map(srvPub);
-    return J({ me: { ...pub(U), email: U.email || "", tfa: !!U.tfa, pst: U.pst || "online", dms: U.dms || [], ...relOut(), entrance: U.entrance }, servers });
+    return J({ me: { ...pub(U), email: U.email || "", tfa: !!U.tfa, pst: U.pst || "online", banned: !!U.banned, banreason: U.banreason || "", admin: IS_ADMIN, dms: U.dms || [], ...relOut(), entrance: U.entrance }, servers });
   }
   if (a === "users") {
     const { blobs } = await st.list({ prefix: "u/" });
