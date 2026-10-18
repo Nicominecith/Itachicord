@@ -144,6 +144,7 @@ export default async (req) => {
     let d = null;
     if (t === "av" || t === "bn") { const u = await get("u/" + clean(i), null); d = u && (t === "av" ? u.avatar : u.banner); }
     else if (t === "si") d = (await get("s/" + i, null))?.icon;
+    else if (t === "gi") d = (await get("g/" + i, null))?.icon;
     else if (t === "pa" || t === "pb") { const p = (await get("s/" + i, null))?.prof?.[n]; d = p && (t === "pa" ? p.avatar : p.banner); }
     const m = /^data:([\w/+.-]+);base64,([\s\S]*)$/.exec(d || "");
     if (!m) return new Response("", { status: 404, headers: { "cache-control": "public, max-age=60" } });
@@ -172,6 +173,13 @@ export default async (req) => {
       const sv = (await st.list({ prefix: "s/" })).blobs.length;
       return J({ servers: sv, users: all.map((u) => ({ name: u.name, uid: uidOf(u), email: u.email || "", created: u.created || 0, seen: u.seen || 0, pst: u.pst || "online", banned: !!u.banned, reason: u.banreason || "", servers: (u.servers || []).length, admin: adm.includes(u.name), tfa: !!u.tfa, hasav: !!u.avatar })).sort((x, y) => y.created - x.created) });
     }
+    if (a === "adm_verify") {
+      const vn = clean(b.name), VU = vn ? await get("u/" + vn, null) : null;
+      if (!VU) return J({ error: "Nutzer nicht gefunden" }, 404);
+      if (b.on) VU.verified = true; else delete VU.verified;
+      await put("u/" + vn, VU);
+      return J({ ok: 1, verified: !!VU.verified });
+    }
     const tn = clean(b.name), T = tn ? await get("u/" + tn, null) : null;
     if (!T) return J({ error: "Nutzer nicht gefunden" }, 404);
     if (adm.includes(T.name)) return J({ error: "Admins können nicht gebannt oder gelöscht werden" }, 400);
@@ -199,14 +207,18 @@ export default async (req) => {
   if (U.banned && !READONLY.includes(a)) return J({ error: "Dein Konto ist gesperrt – du kannst nur noch lesen." + (U.banreason ? " Grund: " + U.banreason : ""), banned: true }, 403);
 
   const allowed = async (ch) => {
-    if (ch.startsWith("dm:")) return ch.split(":").slice(1).includes(me);
+    if (ch.startsWith("dm:")) {
+      const gm = /^dm:g([0-9a-f]{12})$/.exec(ch);
+      if (gm) { const g = await get("g/" + gm[1], null); return !!g && g.members.includes(me); }
+      return ch.split(":").slice(1).includes(me);
+    }
     const s = await get("s/" + ch.split("/")[0]);
     if (!s || !s.members.includes(me)) return false;
     const c = s.channels.find((x) => x.id === (ch.split("/")[1] || "").split("~")[0]);
     if (c?.view && s.owner !== me && !(s.mods || []).includes(me) && !(c.view !== "mods" && s.roles?.[me]?.n === c.view)) return false;
     return true;
   };
-  const pub = (u) => ({ name: u.name, uid: uidOf(u), status: u.status, activity: u.activity, pron: u.pron, dstyle: u.dstyle, links: u.links, conn: u.conn, created: u.created, bio: u.bio, color: u.color, hasav: !!u.avatar, avvid: !!u.avatar?.startsWith("data:video"), hasbn: !!u.banner, imv: u.imv || 0 });
+  const pub = (u) => ({ name: u.name, uid: uidOf(u), status: u.status, activity: u.activity, pron: u.pron, dstyle: u.dstyle, links: u.links, conn: u.conn, created: u.created, dname: u.dname || "", ptheme: u.ptheme || "", verified: !!u.verified, bio: u.bio, color: u.color, hasav: !!u.avatar, avvid: !!u.avatar?.startsWith("data:video"), hasbn: !!u.banner, imv: u.imv || 0 });
   const srvPub = (s) => {
     const o = { ...s, icon: undefined, hasicon: !!s.icon };
     if (s.prof) { o.prof = {}; for (const [k, p] of Object.entries(s.prof)) o.prof[k] = { name: p.name, bio: p.bio, hasav: !!p.avatar, hasbn: !!p.banner, avvid: !!p.avatar?.startsWith("data:video"), v: p.v || 0 }; }
@@ -217,7 +229,8 @@ export default async (req) => {
 
   if (a === "me") {
     const servers = (await Promise.all(U.servers.map((sid) => get("s/" + sid, null)))).filter(Boolean).map(srvPub);
-    return J({ me: { ...pub(U), email: U.email || "", tfa: !!U.tfa, pst: U.pst || "online", banned: !!U.banned, banreason: U.banreason || "", admin: IS_ADMIN, dms: U.dms || [], ...relOut(), entrance: U.entrance }, servers });
+    const groups = (await Promise.all((U.groups || []).map((gid) => get("g/" + gid, null)))).filter((g) => g && g.members.includes(me)).map((g) => ({ id: g.id, ch: "dm:g" + g.id, name: g.name, members: g.members, owner: g.owner, hasicon: !!g.icon, iv: g.iv || 0 }));
+    return J({ me: { ...pub(U), groups, email: U.email || "", tfa: !!U.tfa, pst: U.pst || "online", banned: !!U.banned, banreason: U.banreason || "", admin: IS_ADMIN, dms: U.dms || [], ...relOut(), entrance: U.entrance }, servers });
   }
   if (a === "users") {
     const { blobs } = await st.list({ prefix: "u/" });
@@ -226,6 +239,8 @@ export default async (req) => {
   }
   if (a === "profile") {
     for (const k of ["status", "activity", "pron", "dstyle", "entrance", "conn", "bio", "color", "avatar", "banner"]) if (typeof b[k] === "string") U[k] = b[k].slice(0, k === "entrance" || !["avatar", "banner"].includes(k) ? 700000 : 4500000);
+    if (typeof b.dname === "string") U.dname = b.dname.replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 32);
+    if (typeof b.ptheme === "string") U.ptheme = b.ptheme.slice(0, 220);
     if (b.avatar || b.banner) U.imv = Date.now();
     await put("u/" + me, U);
     return J({ ok: 1 });
@@ -297,7 +312,53 @@ export default async (req) => {
     if (b.op === "off" && U.tfa && okTotp(U.tfa, b.code)) { delete U.tfa; await put("u/" + me, U); return J({ ok: 1 }); }
     return J({ error: "Code falsch" }, 400);
   }
-  if (a === "pst") { if (["online", "dnd", "invisible"].includes(b.v)) { U.pst = b.v; U.seen = Date.now(); await put("u/" + me, U); } return J({ ok: 1 }); }
+  if (a === "pst") { if (["online", "idle", "dnd", "invisible"].includes(b.v)) { U.pst = b.v; U.seen = Date.now(); await put("u/" + me, U); } return J({ ok: 1 }); }
+  if (a === "mkgrp") {
+    const mem = [...new Set([me, ...(Array.isArray(b.members) ? b.members : []).map(clean)])].filter(Boolean);
+    const us = await Promise.all(mem.map((n) => get("u/" + n, null)));
+    if (us.some((x) => !x)) return J({ error: "Unbekannter Nutzer" }, 400);
+    if (mem.length < 3 || mem.length > 10) return J({ error: "Gruppen brauchen 3–10 Mitglieder (inkl. dir)" }, 400);
+    if (us.some((x) => x.name !== me && x.blocked?.includes(me))) return J({ error: "Ein Mitglied hat dich blockiert" }, 403);
+    const gid = crypto.randomBytes(6).toString("hex"), name = String(b.name || "").trim().slice(0, 40) || "Gruppe";
+    let icon = "";
+    if (b.icon) { if (!/^data:image\//.test(b.icon) || b.icon.length > 150000) return J({ error: "Gruppenbild zu groß (max ~100 KB)" }, 400); icon = b.icon; }
+    await put("g/" + gid, { id: gid, name, owner: me, members: mem, icon, iv: Date.now(), created: Date.now() });
+    await Promise.all(us.map((x) => { (x.groups ||= []).push(gid); return put("u/" + x.name, x); }));
+    return J({ ok: 1, ch: "dm:g" + gid });
+  }
+  if (a === "grp") {
+    const g = await get("g/" + String(b.id || "").replace(/[^0-9a-f]/g, ""), null);
+    if (!g || !g.members.includes(me)) return J({ error: "Gruppe nicht gefunden" }, 404);
+    if (b.op === "rename") { const n = String(b.val || "").trim().slice(0, 40); if (!n) return J({ error: "Name fehlt" }, 400); g.name = n; }
+    else if (b.op === "icon") { if (!b.val) g.icon = ""; else { if (!/^data:image\//.test(b.val) || b.val.length > 150000) return J({ error: "Bild zu groß (max ~100 KB)" }, 400); g.icon = b.val; } g.iv = Date.now(); }
+    else if (b.op === "add") {
+      const n = clean(b.val), nu = n && (await get("u/" + n, null));
+      if (!nu) return J({ error: "Nutzer nicht gefunden" }, 404);
+      if (nu.blocked?.includes(me)) return J({ error: "Dieser Nutzer hat dich blockiert" }, 403);
+      if (g.members.length >= 10) return J({ error: "Max. 10 Mitglieder" }, 400);
+      if (!g.members.includes(n)) { g.members.push(n); (nu.groups ||= []).push(g.id); await put("u/" + n, nu); }
+    }
+    else if (b.op === "leave") {
+      g.members = wo(g.members, me); U.groups = wo(U.groups, g.id); await put("u/" + me, U);
+      if (!g.members.length) { await st.delete("g/" + g.id); await st.delete("m/dm:g" + g.id); return J({ ok: 1 }); }
+      if (g.owner === me) g.owner = g.members[0];
+    }
+    else return J({ error: "Unbekannte Aktion" }, 400);
+    await put("g/" + g.id, g);
+    return J({ ok: 1 });
+  }
+  if (a === "typing") {
+    if (!b.ch || !(await allowed(b.ch))) return J({ error: "forbidden" }, 403);
+    await put(`ty/${b.ch}/${me}`, Date.now());
+    return J({ ok: 1 });
+  }
+  if (a === "tyl") {
+    const c = q.get("ch");
+    if (!c || !(await allowed(c))) return J({ error: "forbidden" }, 403);
+    const { blobs } = await st.list({ prefix: `ty/${c}/` }), now = Date.now(), out = [];
+    await Promise.all(blobs.map(async (k) => { const u = k.key.split("/").pop(); if (u === me) return; const t = await get(k.key, 0); if (now - t < 6000 && !(U.blocked || []).includes(u)) out.push(u); }));
+    return J(out);
+  }
   if (a === "dmx") { U.dms = (U.dms || []).filter((x) => x !== clean(b.target)); await put("u/" + me, U); return J({ ok: 1 }); }
   if (a === "rel") {
     // Nur noch Blockieren/Entsperren – Freunde laufen über Anfragen (frq/fac/fdec/frm)
@@ -416,6 +477,9 @@ export default async (req) => {
     const lg = (x) => s.log.push({ t: Date.now(), u: me, x });
     const ch = () => s.channels.find((x) => x.id === clean(b.ch));
     const roleOf = (n) => Object.keys(s.roles || {}).filter((m) => s.roles[m].n === n);
+    const PERMS = ["del", "kick", "ban", "timeout", "roles", "channels"];
+    const need = { kick: "kick", ban: "ban", timeout: "timeout", role: "roles", rmrole: "roles", delrole: "roles", reorder: "channels", chname: "channels", cat: "channels", mkcat: "channels", rencat: "channels", delcat: "channels", delch: "channels" };
+    if (!own && need[op] && s.perms?.[need[op]] === false) return J({ error: "Diese Berechtigung wurde dir vom Besitzer entzogen" }, 403);
     if (["kick", "ban", "timeout"].includes(op)) {
       if (t === s.owner || !s.members.includes(t)) return J({ error: "Ungültiges Ziel" }, 400);
       if (!own && (s.mods || []).includes(t)) return J({ error: "Mods können keine Mods bestrafen" }, 403);
@@ -469,6 +533,17 @@ export default async (req) => {
     else if (op === "event") { const [t0, w] = String(v).split("|"); if (!t0.trim()) return J({ error: "Titel fehlt" }, 400); (s.events ||= []).push({ title: t0.slice(0, 60), time: w || "" }); s.events = s.events.slice(-20); lg("event " + t0); }
     else if (op === "delevent") { (s.events ||= []).splice(+v, 1); lg("event gelöscht"); }
     else if (op === "public") { s.public = !s.public; lg("öffentlich: " + s.public); }
+    else if (op === "perm") {
+      if (!own) return J({ error: "Nur der Besitzer kann Berechtigungen ändern" }, 403);
+      const k = String(v); if (!PERMS.includes(k)) return J({ error: "Unbekannte Berechtigung" }, 400);
+      (s.perms ||= {})[k] = s.perms[k] === false; lg("berechtigung " + k + ": " + (s.perms[k] !== false));
+    }
+    else if (op === "reorder") {
+      const order = String(v || "").split(",").map(clean).filter(Boolean), idx = (c) => { const i = order.indexOf(c.id); return i < 0 ? 9999 : i; };
+      s.channels = s.channels.map((c, i) => [c, i]).sort((x, y) => idx(x[0]) - idx(y[0]) || x[1] - y[1]).map((x) => x[0]);
+      if (b.ch && typeof b.cat === "string") { const c = ch(); if (c) { const nc = b.cat.trim().slice(0, 20); if (nc) { c.cat = nc; if (!(s.cats || []).includes(nc)) (s.cats ||= []).push(nc); } else delete c.cat; } }
+      lg("kanäle neu sortiert");
+    }
     else if (op === "welcome") { s.welcome = String(v).slice(0, 300); lg("willkommenstext"); }
     else return J({ error: "Unbekannte Aktion" }, 400);
     s.log = s.log.slice(-100);
@@ -485,13 +560,20 @@ export default async (req) => {
     if (!(await allowed(ch))) return J({ error: "forbidden" }, 403);
     return J(await get("m/" + ch, []));
   }
-  if (["send", "edit", "del", "react", "pin"].includes(a)) {
+  if (["send", "edit", "del", "react", "pin", "vote"].includes(a)) {
     const ch = b.ch;
     if (!ch || !(await allowed(ch))) return J({ error: "forbidden" }, 403);
     let m = await get("m/" + ch, []);
     if (a === "send") {
       const text = String(b.text || "").slice(0, 4000);
-      if (!text && !b.file) return J({ error: "leer" }, 400);
+      if (!text && !b.file && !b.poll) return J({ error: "leer" }, 400);
+      let poll = null;
+      if (b.poll) {
+        const pq = String(b.poll.q || "").trim().slice(0, 200), po = (Array.isArray(b.poll.opts) ? b.poll.opts : []).map((x) => String(x || "").trim().slice(0, 80)).filter(Boolean).slice(0, 8);
+        if (!pq || po.length < 2) return J({ error: "Umfrage braucht eine Frage und mindestens 2 Antworten" }, 400);
+        const hrs = Math.min(720, Math.max(0.25, +b.poll.hours || 24));
+        poll = { q: pq, opts: po.map((t) => ({ t, v: [] })), end: Date.now() + hrs * 3600000 };
+      }
       if (ch.startsWith("dm:")) { const o = ch.split(":").slice(1).find((n) => n !== me), ou = o && (await get("u/" + o, null)); if (ou?.blocked?.includes(me)) return J({ error: "Du wurdest blockiert" }, 403);
         if (ou) { if (!(ou.dms || []).includes(me)) { (ou.dms ||= []).push(me); await put("u/" + o, ou); } if (!(U.dms || []).includes(o)) { (U.dms ||= []).push(o); await put("u/" + me, U); } } }
       if (!ch.startsWith("dm:")) {
@@ -506,6 +588,7 @@ export default async (req) => {
         }
       }
       const msg = { id: id(), u: me, t: Date.now(), text, reply: b.reply || null, file: b.file ? (b.file.fid ? { name: String(b.file.name).slice(0, 80), fid: String(b.file.fid).replace(/\W/g, ""), n: +b.file.n, size: +b.file.size, type: String(b.file.type).slice(0, 60) } : { name: String(b.file.name).slice(0, 80), data: String(b.file.data).slice(0, 4000000) }) : null, react: {}, pin: false };
+      if (poll) msg.poll = poll;
       m.push(msg);
       const sv2 = await get("s/" + ch.split("/")[0], null);
       if (sv2 && !ch.startsWith("dm:")) { const dk = new Date().toISOString().slice(0, 10), c2 = ch.split("/")[1].split("~")[0], stt = (sv2.stats ||= { d: {}, c: {} }); stt.d[dk] = (stt.d[dk] || 0) + 1; stt.c[c2] = (stt.c[c2] || 0) + 1; await put("s/" + sv2.id, sv2); }
@@ -516,7 +599,8 @@ export default async (req) => {
         const tg = new Map(), add = (u, k) => { if (u && u !== me && !tg.has(u)) tg.set(u, k); };
         let sname = "", cname = "";
         const names = new Set([...text.matchAll(/(?:^|[^\w@/.:=-])@(\w+)/g)].map((x) => x[1].toLowerCase()));
-        if (ch.startsWith("dm:")) ch.split(":").slice(1).forEach((n) => add(n, "dm"));
+        if (ch.startsWith("dm:g")) { const gg = await get("g/" + ch.slice(4), null); (gg?.members || []).forEach((n) => add(n, "dm")); sname = gg?.name || ""; }
+        else if (ch.startsWith("dm:")) ch.split(":").slice(1).forEach((n) => add(n, "dm"));
         else if (sv2) {
           const cid = ch.split("/")[1].split("~")[0], ct = sv2.channels.find((c) => c.id === cid);
           sname = sv2.name; cname = ct?.name || cid;
@@ -540,7 +624,20 @@ export default async (req) => {
       const x = m.find((i) => i.id === b.id);
       if (!x) return J({ error: "nf" }, 404);
       if (a === "edit" && x.u === me) { x.text = String(b.text).slice(0, 4000); x.edited = true; }
-      if (a === "del" && x.u === me) m = m.filter((i) => i !== x);
+      if (a === "del") {
+        let okDel = x.u === me;
+        if (!okDel && !ch.startsWith("dm:")) { const sv3 = await get("s/" + ch.split("/")[0], null); okDel = !!sv3 && (sv3.owner === me || ((sv3.mods || []).includes(me) && sv3.perms?.del !== false)); }
+        if (!okDel) return J({ error: "Keine Rechte zum Löschen" }, 403);
+        m = m.filter((i) => i !== x);
+      }
+      if (a === "vote") {
+        if (!x.poll) return J({ error: "Keine Umfrage" }, 400);
+        if (Date.now() > x.poll.end) return J({ error: "Umfrage ist beendet" }, 400);
+        const oi = +b.i; if (!(oi >= 0 && oi < x.poll.opts.length)) return J({ error: "Ungültige Antwort" }, 400);
+        const had = x.poll.opts[oi].v.includes(me);
+        x.poll.opts.forEach((o) => { o.v = wo(o.v, me); });
+        if (!had) x.poll.opts[oi].v.push(me);
+      }
       if (a === "pin") x.pin = !x.pin;
       if (a === "react") {
         const l = (x.react[b.emoji] ||= []);

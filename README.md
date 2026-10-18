@@ -37,3 +37,20 @@ Nutzer können beim Registrieren oder im Profil (📧 E-Mail) eine Adresse hinte
 - **Hintergrundbild:** Profil/Einstellungen → Hintergrundbild (wird pro Gerät gespeichert, Abdunkeln einstellbar).
 - **Call:** Auf ein Video klicken = vergrößern (Esc/Klick schließt), Doppelklick oder ⛶ = Vollbild.
 - **Nicht stören:** Keine Töne mehr (auch Join/Leave/Senden), keine Popups, keine Anrufe.
+
+## Neu (v5): Fehlende Yapper-Features nachgerüstet
+Datei `public/v5.js` (+ Erweiterungen in `netlify/functions/api.mjs`). Nach dem Deploy einmal hart neu laden (Service-Worker-Cache heißt jetzt `itachicord-v5`).
+- **Crop-Tool:** Beim Hochladen von Avatar, Banner, Server-Icon/-Banner und Gruppenbild öffnet sich ein Zuschnitt-Fenster (ziehen + zoomen). GIFs bleiben unverändert animiert (kein Zuschnitt, damit die Animation nicht verloren geht).
+- **Anzeigenamen:** Profil → „Anzeigename“. Der @Benutzername bleibt eindeutig; der Anzeigename erscheint in Nachrichten, Profilkarte, Mitgliederliste, Gruppen.
+- **Verifiziert-Haken (✔):** Admins setzen/entfernen ihn über die Profilkarte eines Nutzers („Verifizieren (Admin)“; API `adm_verify`).
+- **Status „Abwesend“ (gelb):** manuell wählbar und automatisch nach 5 Min. ohne Aktivität.
+- **Gruppenchats:** In der DM-Liste „Gruppe erstellen“ (3–10 Mitglieder, Name, Gruppenbild). Umbenennen, Bild ändern, Mitglieder hinzufügen, verlassen über ⚙ in der Kopfzeile.
+- **„schreibt …“-Anzeige** in allen Chats (API `typing` / `tyl`).
+- **Umfragen (📊):** mehrere Antworten, nur eine Stimme pro Person (Wechsel möglich), automatisches Ende (1 Std. bis 7 Tage).
+- **Suche (🔍):** in Kopfzeile jedes Chats – diesen Kanal oder den ganzen Server (durchsucht die letzten 200 Nachrichten je Kanal).
+- **Drag & Drop für Kanäle:** Kanäle in der Seitenleiste per Maus verschieben, auch in andere Kategorien (Besitzer / Mods mit Recht „Kanäle“; nur Desktop-Maus).
+- **Detaillierte Mod-Berechtigungen:** Servermenü → „Mod-Berechtigungen“ (Besitzer): Fremde Nachrichten löschen, kicken, bannen, Timeouts, Rollen, Kanäle verwalten. Mods dürfen jetzt (mit Recht) fremde Nachrichten löschen.
+- **Erscheinungsbild:** Profil → Dunkel / Hell / AMOLED + eigene App-Akzentfarbe.
+- **Profil-Themes:** Presets Sunset, Neon, Ocean, Cyberpunk + freie Farben (Hintergrund 1/2, Akzent, Schrift) – sichtbar auf deiner Profilkarte für alle.
+- **Emoji:** Suche, Favoriten (Rechtsklick bzw. lange drücken auf ein Emoji, Tab ⭐).
+- **Mikrofon- & Echo-Test:** Profil → „Mikrofon- & Echo-Test“ (5 s aufnehmen, Pegelanzeige, Wiedergabe).

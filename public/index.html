@@ -575,4 +575,4 @@ function ringHide(){clearInterval(RT);try{RS&&RS.stop()}catch(e){}RS=null;RG=nul
 function ringShow(r){RG=r;RS=sfx("ring",1);if(!RS)RT=setInterval(()=>sfx("ring"),1800);try{if(document.hidden)window.ntfNative&&window.ntfNative({u:r.from,k:"call",tx:"ruft dich an …",ch:r.room})}catch(e){}const d=document.createElement("div");d.id="ringbox";d.className="dlg";d.innerHTML=`<div class="card" style="text-align:center">${av(r.from)}<h3 style="margin:0">📞 ${esc(r.from)} ruft an…</h3><div class="dr"><button class="dc">Ablehnen</button><button class="pri dk">Annehmen</button></div></div>`;d.querySelector(".dc").onclick=()=>{ringHide();api("unring",{})};d.querySelector(".dk").onclick=()=>{const x=r;ringHide();api("unring",{});open_(x.room,"@"+x.from);vjoin()};document.body.append(d)}
 setInterval(poll,2000);setInterval(ringpoll,2500);setInterval(vl,3000);
 </script>
-<script src="/v2.js"></script><script src="/v3.js"></script><script src="/v4.js"></script></body></html>
+<script src="/v2.js"></script><script src="/v3.js"></script><script src="/v4.js"></script><script src="/v5.js"></script></body></html>
