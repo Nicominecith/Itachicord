@@ -72,7 +72,7 @@ async function relpoll(){
   const key=x=>JSON.stringify([x.friends||[],x.fin||[],x.fout||[],x.blocked||[]]);if(key(r)==key(ME))return;
   const nin=r.fin.filter(x=>!(ME.fin||[]).includes(x)),nfr=r.friends.filter(x=>!(ME.friends||[]).includes(x)),q=ME.pst!="dnd";
   setRels(r);
-  nin.forEach(n=>{toast("📨 "+n+" hat dir eine Freundschaftsanfrage gesendet");q&&sfx("msg");try{document.hidden&&q&&new Notification("Freundschaftsanfrage von "+n)}catch(e){}});
+  nin.forEach(n=>{const x={u:n,k:"friend",tx:"hat dir eine Freundschaftsanfrage gesendet",ch:"@friends"};if(q&&!document.hidden&&window.ntfPop)ntfPop(x);else if(!q||!window.ntfPop)toast("📨 "+n+" hat dir eine Freundschaftsanfrage gesendet");q&&sfx("msg");document.hidden&&q&&window.ntfNative&&ntfNative(x)});
   nfr.forEach(n=>{toast("✅ "+n+" ist jetzt dein Freund");q&&sfx("join")});
   if(FV)frPage(true);
 }

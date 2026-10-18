@@ -426,6 +426,11 @@ export default async (req) => {
     await put("s/" + s.id, s);
     return J(srvPub(s));
   }
+  if (a === "inbox") {
+    const since = +q.get("since") || 0;
+    if (!since) return J({ now: Date.now(), items: [] });
+    return J({ items: (await get("n/" + me, [])).filter((x) => x.t >= since) });
+  }
   if (a === "msgs") {
     const ch = q.get("ch");
     if (!(await allowed(ch))) return J({ error: "forbidden" }, 403);
@@ -451,11 +456,36 @@ export default async (req) => {
           if (sl && lm && now - lm.t < sl) return J({ error: "Slowmode aktiv" }, 429);
         }
       }
-      m.push({ id: id(), u: me, t: Date.now(), text, reply: b.reply || null, file: b.file ? (b.file.fid ? { name: String(b.file.name).slice(0, 80), fid: String(b.file.fid).replace(/\W/g, ""), n: +b.file.n, size: +b.file.size, type: String(b.file.type).slice(0, 60) } : { name: String(b.file.name).slice(0, 80), data: String(b.file.data).slice(0, 4000000) }) : null, react: {}, pin: false });
+      const msg = { id: id(), u: me, t: Date.now(), text, reply: b.reply || null, file: b.file ? (b.file.fid ? { name: String(b.file.name).slice(0, 80), fid: String(b.file.fid).replace(/\W/g, ""), n: +b.file.n, size: +b.file.size, type: String(b.file.type).slice(0, 60) } : { name: String(b.file.name).slice(0, 80), data: String(b.file.data).slice(0, 4000000) }) : null, react: {}, pin: false };
+      m.push(msg);
       const sv2 = await get("s/" + ch.split("/")[0], null);
       if (sv2 && !ch.startsWith("dm:")) { const dk = new Date().toISOString().slice(0, 10), c2 = ch.split("/")[1].split("~")[0], stt = (sv2.stats ||= { d: {}, c: {} }); stt.d[dk] = (stt.d[dk] || 0) + 1; stt.c[c2] = (stt.c[c2] || 0) + 1; await put("s/" + sv2.id, sv2); }
       const cm = text.startsWith("/") && sv2?.cmds?.[text.slice(1).split(" ")[0]];
       if (cm) m.push({ id: id(), u: "🤖 Bot", t: Date.now(), text: cm, reply: null, file: null, react: {}, pin: false });
+      // --- Benachrichtigungen: DM, @name, @everyone/@here, Antwort -> Inbox der Empfänger (Popups im Client) ---
+      try {
+        const tg = new Map(), add = (u, k) => { if (u && u !== me && !tg.has(u)) tg.set(u, k); };
+        let sname = "", cname = "";
+        const names = new Set([...text.matchAll(/(?:^|[^\w@/.:=-])@(\w+)/g)].map((x) => x[1].toLowerCase()));
+        if (ch.startsWith("dm:")) ch.split(":").slice(1).forEach((n) => add(n, "dm"));
+        else if (sv2) {
+          const cid = ch.split("/")[1].split("~")[0], ct = sv2.channels.find((c) => c.id === cid);
+          sname = sv2.name; cname = ct?.name || cid;
+          const see = (u) => !ct?.view || sv2.owner === u || (sv2.mods || []).includes(u) || (ct.view !== "mods" && sv2.roles?.[u]?.n === ct.view);
+          names.forEach((n) => { if (n !== "everyone" && n !== "here" && sv2.members.includes(n) && see(n)) add(n, "mention"); });
+          const rp = b.reply && m.find((i) => i.id === b.reply); if (rp && sv2.members.includes(rp.u) && see(rp.u)) add(rp.u, "reply");
+          if (names.has("everyone") || names.has("here")) sv2.members.filter(see).forEach((u) => add(u, names.has("everyone") ? "everyone" : "here"));
+        }
+        const item = { i: msg.id, t: msg.t, ch, u: me, k: "", tx: (text || (msg.file ? "📎 " + msg.file.name : "")).slice(0, 160), s: sname, c: cname };
+        await Promise.all([...tg].slice(0, 150).map(async ([t, k]) => {
+          const tu = await get("u/" + t, null);
+          if (!tu || tu.blocked?.includes(me)) return;
+          if (k === "here" && (tu.pst === "invisible" || Date.now() - (tu.seen || 0) > 90000)) return;
+          const ib = await get("n/" + t, []);
+          ib.push({ ...item, k: k === "here" ? "everyone" : k });
+          await put("n/" + t, ib.slice(-30));
+        }));
+      } catch (e) { /* Benachrichtigungen dürfen das Senden nie blockieren */ }
       m = m.slice(-200);
     } else {
       const x = m.find((i) => i.id === b.id);
