@@ -304,6 +304,13 @@ async function grpLeave(id) {
   await grpOp(id, "leave", "x"); $("#modal").classList.add("hide"); showHome();
 }
 
+/* ---------- Gruppen: kein Sprachanruf (sonst klingelt call.mp3 endlos) ---------- */
+const _vjoin5 = vjoin;
+vjoin = function () {
+  if (ch && ch.startsWith("dm:g")) { toast("Sprachanrufe gibt es in 1:1-DMs und in Server-Sprachkanälen"); return; }
+  return _vjoin5.apply(this, arguments);
+};
+
 /* ---------- Kopfzeile: Suche + Gruppen-Menü ---------- */
 const _open5 = open_;
 open_ = function (c, t) {
@@ -311,6 +318,7 @@ open_ = function (c, t) {
   if (ch !== c) return;
   const hs = document.querySelector("#hd .hs"); if (!hs || document.getElementById("srch5")) return;
   const g = c.startsWith("dm:g") ? (ME.groups || []).find(x => x.ch == c) : null;
+  if (g) { const mic = hs.querySelector('button[onclick^="vjoin"]'); if (mic) mic.remove(); }
   hs.insertAdjacentHTML("afterbegin", `<button id="srch5" title="Suchen" onclick="srchUI()">🔍</button>` + (g ? `<button title="Gruppe verwalten" onclick="grpSet('${g.id}')">⚙</button>` : ""));
   const tyi = document.getElementById("tyi"); if (tyi) tyi.innerHTML = "";
 };
@@ -319,7 +327,6 @@ open_ = function (c, t) {
 const cid5 = el => { const m = /\('[^'\/]+\/([^'~]+)'/.exec(el.getAttribute("onclick") || ""); return m && m[1]; };
 let dragId = null;
 function mkDrag() {
-  if (canReorder()) document.querySelectorAll("#chs .it").forEach(e => { if (!e.draggable && cid5(e)) e.draggable = true; });
   document.querySelectorAll("#mlist .mem:not([data-d5])").forEach(e => {
     e.dataset.d5 = 1; const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let t;
     while ((t = w.nextNode())) { const k = t.nodeValue.trim(), u = U[k]; if (u && u.dname && !(srv && srv.prof && srv.prof[k] && srv.prof[k].name)) { t.nodeValue = t.nodeValue.replace(k, u.dname); break; } }
@@ -327,9 +334,16 @@ function mkDrag() {
 }
 new MutationObserver(mkDrag).observe(document.getElementById("list"), { childList: true, subtree: true });
 const lst = document.getElementById("list");
+// draggable erst beim Greifen setzen und NIE bei Klicks auf Buttons (Zahnrad ⚙ / ＋) – sonst sind sie in Firefox nicht klickbar
+lst.addEventListener("mousedown", e => {
+  lst.querySelectorAll("#chs .it[draggable]").forEach(x => x.removeAttribute("draggable"));
+  if (e.button !== 0 || e.target.closest("button,input,select,a") || !canReorder()) return;
+  const t = e.target.closest("#chs .it"); if (t && cid5(t)) t.draggable = true;
+});
+lst.addEventListener("mouseup", () => lst.querySelectorAll("#chs .it[draggable]").forEach(x => x.removeAttribute("draggable")));
 lst.addEventListener("dragstart", e => { const t = e.target.closest && e.target.closest("#chs .it"); if (!t || !cid5(t) || !canReorder()) return; dragId = cid5(t); e.dataTransfer.setData("text/plain", dragId); e.dataTransfer.effectAllowed = "move"; });
 lst.addEventListener("dragover", e => { if (!dragId) return; const t = e.target.closest("#chs .it, #chs .cat"); if (!t) return; e.preventDefault(); lst.querySelectorAll(".dg5").forEach(x => x.classList.remove("dg5")); t.classList.add("dg5"); });
-lst.addEventListener("dragend", () => { dragId = null; lst.querySelectorAll(".dg5").forEach(x => x.classList.remove("dg5")); });
+lst.addEventListener("dragend", () => { dragId = null; lst.querySelectorAll("#chs .it[draggable]").forEach(x => x.removeAttribute("draggable")); lst.querySelectorAll(".dg5").forEach(x => x.classList.remove("dg5")); });
 lst.addEventListener("drop", e => {
   if (!dragId) return; const t = e.target.closest("#chs .it, #chs .cat"); if (!t) return; e.preventDefault();
   const id = dragId; dragId = null; lst.querySelectorAll(".dg5").forEach(x => x.classList.remove("dg5"));

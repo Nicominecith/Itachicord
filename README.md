@@ -54,3 +54,7 @@ Datei `public/v5.js` (+ Erweiterungen in `netlify/functions/api.mjs`). Nach dem 
 - **Profil-Themes:** Presets Sunset, Neon, Ocean, Cyberpunk + freie Farben (Hintergrund 1/2, Akzent, Schrift) – sichtbar auf deiner Profilkarte für alle.
 - **Emoji:** Suche, Favoriten (Rechtsklick bzw. lange drücken auf ein Emoji, Tab ⭐).
 - **Mikrofon- & Echo-Test:** Profil → „Mikrofon- & Echo-Test“ (5 s aufnehmen, Pegelanzeige, Wiedergabe).
+
+### Fix (v5.1)
+- Kanal-Zahnrad ⚙ war durch Drag&Drop blockiert (Firefox): Zeilen sind jetzt nur noch beim Greifen verschiebbar, Buttons bleiben immer klickbar.
+- Gruppenchats starteten beim Klick auf 🎤 einen Klingelton, der nie aufhörte: Sprachanrufe sind in Gruppen jetzt gesperrt (Client + Server).

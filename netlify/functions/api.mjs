@@ -441,7 +441,7 @@ export default async (req) => {
     await put("h/" + k, { ch: b.ch, name: String(b.name || "Webhook") });
     return J({ url: "/api?a=hook&k=" + k });
   }
-  if (a === "ring") { const to = clean(b.to); if (!to || !String(b.room).startsWith("dm:") || !(await allowed(b.room))) return J({ error: "forbidden" }, 403); await put("r/" + to, { from: me, room: b.room, t: Date.now() }); return J({ ok: 1 }); }
+  if (a === "ring") { const to = clean(b.to); if (!to || !String(b.room).startsWith("dm:") || /^dm:g/.test(String(b.room)) || !(await get("u/" + to, null)) || !(await allowed(b.room))) return J({ error: "forbidden" }, 403); await put("r/" + to, { from: me, room: b.room, t: Date.now() }); return J({ ok: 1 }); }
   if (a === "rings") { const r = await get("r/" + me, null); return J(r && Date.now() - r.t < 30000 ? r : {}); }
   if (a === "unring") { await st.delete("r/" + me); return J({ ok: 1 }); }
   if (a === "ringx") { const to = clean(b.to), r = await get("r/" + to, null); if (r && r.from === me) await st.delete("r/" + to); return J({ ok: 1 }); }
