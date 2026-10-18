@@ -164,6 +164,21 @@ document.addEventListener("dblclick",e=>{
 // Wenn ein Video aus dem Call verschwindet, Zoom schließen
 new MutationObserver(()=>{if(Q("#vzb")&&!Q("#vg video.vzoom"))vzoomOff()}).observe(document.body,{childList:true,subtree:true});
 
+
+/* ---------- Sprache-Knopf nur in DMs und Sprachkanälen ---------- */
+const _open=window.open_;
+if(typeof _open=="function")window.open_=function(c){
+  const r=_open.apply(this,arguments);
+  try{
+    const b=document.querySelector('#hd button[title="Sprache"]');
+    if(b&&c&&!String(c).startsWith("dm:")){
+      const x=srv&&srv.channels.find(k=>k.id==(String(c).split("/")[1]||"").split("~")[0]);
+      if(!x||x.type!="voice")b.classList.add("hide");
+    }
+  }catch(e){}
+  return r;
+};
+
 /* ---------- Gebannt: nur lesen ---------- */
 let BN=null;
 function banUI(){

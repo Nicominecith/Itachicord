@@ -77,7 +77,7 @@ async function boot(){
   if(!T)return gate("Nicht angemeldet","Bitte melde dich zuerst in Itachicord an.",1);
   const r=await api("adm_me");
   if(r.error)return gate("Nicht angemeldet","Bitte melde dich zuerst in Itachicord an.",1);
-  if(!r.admin)return gate("Kein Zugriff","Dein Konto ist kein Admin. Admins stellst du in Netlify mit der Variable ADMIN_USERS ein (oder das älteste Konto ist Admin).",1);
+  if(!r.admin)return gate("Kein Zugriff","Dein Konto ist kein Admin. Admin ist das Konto „nicominecith“.",1);
   ME=r.name;$("#who").textContent="Angemeldet als "+ME;$("#gate").classList.add("hide");$("#app").classList.remove("hide");load();
 }
 $("#q").oninput=draw;$("#rf").onclick=async()=>{await load();toast("Aktualisiert")};

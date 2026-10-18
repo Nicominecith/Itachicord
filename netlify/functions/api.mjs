@@ -156,17 +156,10 @@ export default async (req) => {
   if (Date.now() - (U.seen || 0) > 30000) { U.seen = Date.now(); await put("u/" + me, U); }
 
   // ---- Admin / Management ----
-  // Admins: Netlify-Variable ADMIN_USERS (Namen, Komma-getrennt). Ohne Variable ist das älteste Konto Admin.
+  // Admin ist standardmäßig "nicominecith". Weitere/andere Admins: Netlify-Variable ADMIN_USERS (Namen, Komma-getrennt).
   const admins = async () => {
     const env = String(process.env.ADMIN_USERS || "").split(",").map(clean).filter(Boolean);
-    if (env.length) return env;
-    let f = await get("cfg/admin", null);
-    if (!f) {
-      const { blobs } = await st.list({ prefix: "u/" });
-      const all = (await Promise.all(blobs.map((x) => get(x.key, null)))).filter(Boolean).sort((x, y) => (x.created || 0) - (y.created || 0));
-      f = all[0]?.name || ""; if (f) await put("cfg/admin", f);
-    }
-    return f ? [f] : [];
+    return env.length ? env : ["nicominecith"];
   };
   const IS_ADMIN = (await admins()).includes(me);
   if (a.startsWith("adm_")) {
@@ -400,6 +393,7 @@ export default async (req) => {
   if (a === "vsync") {
     const room = b.room;
     if (!room || !(await allowed(room))) return J({ error: "forbidden" }, 403);
+    if (!room.startsWith("dm:")) { const sv = await get("s/" + room.split("/")[0], null), c = sv?.channels.find((x) => x.id === (room.split("/")[1] || "").split("~")[0]); if (c?.type !== "voice") return J({ error: "Anrufe gehen nur in Sprachkanälen" }, 400); }
     const now = Date.now();
     await st.set(`v/${room}/${me}`, String(now));
     let i = 0;
