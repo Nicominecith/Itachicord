@@ -1,4 +1,4 @@
-/* ===== Itachicord v5: fehlende Features aus der Yapper-Liste =====
+/* ===== Pulsecord v5: fehlende Features aus der Yapper-Liste =====
    Crop-Tool · Anzeigenamen · Verifiziert-Haken · Status "Abwesend" · Gruppenchats · "schreibt…" · Umfragen
    Nachrichtensuche · Drag&Drop-Kanäle · Mod-Berechtigungen · Hell/AMOLED/Akzent · Profil-Themes
    Emoji-Favoriten/-Suche · Mikrofon-/Echo-Test */
@@ -73,7 +73,9 @@ function applyMode() {
 const _me5 = me;
 me = function () {
   _me5();
-  applyMode();
+  /* In der Android-App (WebView) gibt es kein getDisplayMedia -> Bildschirm-Button ausblenden */
+if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) { const st = document.createElement("style"); st.textContent = 'button[onclick*="scr()"]{display:none!important}'; document.head.appendChild(st); }
+applyMode();
   if (ME && ME.dname) { const b = document.querySelector("#me b"); if (b) b.textContent = ME.dname; }
 };
 
@@ -152,14 +154,14 @@ const _prof5 = prof;
 prof = function () {
   _prof5();
   const mc = document.getElementById("mc"), h = mc && mc.querySelector("h3"); if (!h) return;
-  const p = ptOf(ME) || { b1: "#1a0b2e", b2: "#c8102e", a: "#ff4d6d", t: "#ffffff" }, m = localStorage.mode || "dark";
+  const p = ptOf(ME) || { b1: "#0f1b4d", b2: "#6d3fd9", a: "#5aa9ff", t: "#ffffff" }, m = localStorage.mode || "dark";
   h.insertAdjacentHTML("afterend", `<div class="p5s"><b>✨ Neu: Anzeigename &amp; Themes</b>
 <input id="p5dn" maxlength="32" placeholder="Anzeigename (dein @${esc(ME.name)} bleibt dein Benutzername)" value="${esc(ME.dname || "")}">
 <div class="p5c">${Object.keys(PT5).map(k => `<button onclick="p5pre('${k}')">${k}</button>`).join("")}</div>
 <div class="p5c"><label>Hintergrund 1<input id="p5b1" type="color" value="${p.b1}"></label><label>Hintergrund 2<input id="p5b2" type="color" value="${p.b2}"></label><label>Akzent<input id="p5a" type="color" value="${p.a}"></label><label>Schrift<input id="p5t" type="color" value="${p.t}"></label></div>
 <button class="pri" onclick="p5save()">💾 Anzeigename &amp; Profil-Theme speichern</button><button onclick="p5reset()">Profil-Theme zurücksetzen</button>
 <label>Erscheinungsbild <select onchange="localStorage.mode=this.value;applyMode()"><option value="dark" ${m == "dark" ? "selected" : ""}>Dunkel</option><option value="light" ${m == "light" ? "selected" : ""}>Hell</option><option value="amoled" ${m == "amoled" ? "selected" : ""}>AMOLED-Schwarz</option></select></label>
-<label>App-Akzentfarbe <input type="color" value="${hex(localStorage.acx) ? localStorage.acx : (ME.color || "#c8102e")}" oninput="localStorage.acx=this.value;applyMode()"></label><button onclick="localStorage.acx='';document.documentElement.style.setProperty('--red',ME.color||'#c8102e');applyMode()">Akzentfarbe zurücksetzen</button>
+<label>App-Akzentfarbe <input type="color" value="${hex(localStorage.acx) ? localStorage.acx : (ME.color || "#7b6cff")}" oninput="localStorage.acx=this.value;applyMode()"></label><button onclick="localStorage.acx='';document.documentElement.style.setProperty('--red',ME.color||'#7b6cff');applyMode()">Akzentfarbe zurücksetzen</button>
 <button onclick="micTest()">🎙 Mikrofon- &amp; Echo-Test</button></div>`);
 };
 function p5pre(k) { const p = PT5[k]; $("#p5b1").value = p.b1; $("#p5b2").value = p.b2; $("#p5a").value = p.a; $("#p5t").value = p.t; }
@@ -290,7 +292,7 @@ async function grpMk() {
 function grpSet(id) {
   const g = (ME.groups || []).find(x => x.id == id); if (!g) return;
   const addable = [...new Set([...(ME.friends || []), ...(ME.dms || [])])].filter(n => !g.members.includes(n) && !(ME.blocked || []).includes(n));
-  modal(`<h3>👥 ${esc(g.name)}</h3><input id="g5r" maxlength="40" value="${esc(g.name)}"><button onclick="grpOp('${id}','rename',$('#g5r').value)">Umbenennen</button><label>Gruppenbild ändern <input type="file" accept="image/*" onchange="grpIcon('${id}',this.files[0])"></label><div><b>Mitglieder (${g.members.length}/10)</b><br>${g.members.map(n => esc(dnOf(n)) + (n == g.owner ? " 👑" : "")).join(", ")}</div>${addable.length ? `<label>Hinzufügen <select id="g5a"><option value="">–</option>${addable.map(n => `<option value="${esc(n)}">${esc(dnOf(n))}</option>`).join("")}</select></label><button onclick="grpOp('${id}','add',$('#g5a').value)">Hinzufügen</button>` : ""}<button style="border-color:#c8102e" onclick="grpLeave('${id}')">🚪 Gruppe verlassen</button>`);
+  modal(`<h3>👥 ${esc(g.name)}</h3><input id="g5r" maxlength="40" value="${esc(g.name)}"><button onclick="grpOp('${id}','rename',$('#g5r').value)">Umbenennen</button><label>Gruppenbild ändern <input type="file" accept="image/*" onchange="grpIcon('${id}',this.files[0])"></label><div><b>Mitglieder (${g.members.length}/10)</b><br>${g.members.map(n => esc(dnOf(n)) + (n == g.owner ? " 👑" : "")).join(", ")}</div>${addable.length ? `<label>Hinzufügen <select id="g5a"><option value="">–</option>${addable.map(n => `<option value="${esc(n)}">${esc(dnOf(n))}</option>`).join("")}</select></label><button onclick="grpOp('${id}','add',$('#g5a').value)">Hinzufügen</button>` : ""}<button style="border-color:var(--red)" onclick="grpLeave('${id}')">🚪 Gruppe verlassen</button>`);
 }
 async function grpOp(id, op, val) {
   if (!val && op !== "icon") return toast("Bitte etwas eingeben");
@@ -399,4 +401,32 @@ ecat = function (i) {
   $("#eg").innerHTML = h;
 };
 
+/* In der Android-App (WebView) gibt es kein getDisplayMedia -> Bildschirm-Button ausblenden */
+if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) { const st = document.createElement("style"); st.textContent = 'button[onclick*="scr()"]{display:none!important}'; document.head.appendChild(st); }
+
+/* ---------- Android-App: Downloads (Blob/Data) über die App-Brücke speichern ---------- */
+if (window.AndroidApp && AndroidApp.saveStart) {
+  const appSave = async (href, name) => {
+    try {
+      toast("⏳ Wird gespeichert …");
+      const buf = new Uint8Array(await (await (await fetch(href)).blob()).arrayBuffer()), blobType = (await (await fetch(href)).blob()).type;
+      AndroidApp.saveStart(name || "datei", blobType || "application/octet-stream");
+      for (let i = 0; i < buf.length; i += 240000) {
+        let s = ""; const sl = buf.subarray(i, i + 240000);
+        for (let k = 0; k < sl.length; k += 8192) s += String.fromCharCode.apply(null, sl.subarray(k, k + 8192));
+        AndroidApp.saveChunk(btoa(s));
+      }
+      if (!AndroidApp.saveEnd()) toast("Speichern nicht möglich – Speicher-Berechtigung erlauben und erneut versuchen");
+    } catch (e) { toast("Download fehlgeschlagen"); }
+  };
+  const _ac = HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click = function () {
+    if (this.hasAttribute("download") && /^(blob:|data:)/.test(this.href)) { appSave(this.href, this.getAttribute("download")); return; }
+    return _ac.apply(this, arguments);
+  };
+  document.addEventListener("click", e => {
+    const a = e.target.closest && e.target.closest("a[download]");
+    if (a && /^(blob:|data:)/.test(a.href)) { e.preventDefault(); appSave(a.href, a.getAttribute("download")); }
+  }, true);
+}
 applyMode();

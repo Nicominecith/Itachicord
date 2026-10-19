@@ -18,7 +18,7 @@ const READONLY = ["me", "users", "msgs", "inbox", "rels", "discover", "dl", "exp
 const mailOn = () => !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASS);
 const mail = async (to, subject, text) => {
   const t = nodemailer.createTransport({ service: "gmail", auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASS.replace(/\s/g, "") } });
-  await t.sendMail({ from: `Itachicord <${process.env.GMAIL_USER}>`, to, subject, text });
+  await t.sendMail({ from: `Pulsecord <${process.env.GMAIL_USER}>`, to, subject, text });
 };
 const okMail = (e) => e.length <= 120 && /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(e);
 export const config = { path: "/api" };
@@ -42,7 +42,7 @@ export default async (req) => {
     if (!em || !okMail(em)) return J({ error: "Bitte eine gültige E-Mail-Adresse angeben" }, 400);
     if (await get("e/" + eh(em), "")) return J({ error: "Diese E-Mail ist schon registriert" }, 400);
     const salt = id();
-    await put("u/" + n, { name: n, salt, h: hash(b.pass, salt), status: "", bio: "", email: em, color: "#c8102e", avatar: "", banner: "", created: Date.now(), servers: [] });
+    await put("u/" + n, { name: n, salt, h: hash(b.pass, salt), status: "", bio: "", email: em, color: "#7b6cff", avatar: "", banner: "", created: Date.now(), servers: [] });
     await put("e/" + eh(em), n);
   }
   if (a === "reg" || a === "login") {
@@ -61,7 +61,7 @@ export default async (req) => {
       await put("rl/" + n, Date.now());
       const code = String(crypto.randomInt(0, 1e6)).padStart(6, "0"), sl = id();
       await put("pr/" + n, { h: hash(code, sl), s: sl, exp: Date.now() + 15 * 60000, tries: 0 });
-      try { await mail(u.email, "Itachicord – Passwort zurücksetzen", `Hallo ${n},\n\ndein Code zum Zurücksetzen: ${code}\n\nEr ist 15 Minuten gültig. Warst du das nicht, ignoriere diese Mail einfach.`); } catch (e) { console.error("mail", e.message); }
+      try { await mail(u.email, "Pulsecord – Passwort zurücksetzen", `Hallo ${n},\n\ndein Code zum Zurücksetzen: ${code}\n\nEr ist 15 Minuten gültig. Warst du das nicht, ignoriere diese Mail einfach.`); } catch (e) { console.error("mail", e.message); }
     }
     return J({ ok: 1 });
   }
@@ -109,10 +109,10 @@ export default async (req) => {
     await st.delete("o/" + q.get("state"));
     const cid = process.env["OAUTH_" + P + "_ID"], sec = process.env["OAUTH_" + P + "_SECRET"];
     const body = new URLSearchParams({ grant_type: "authorization_code", code: q.get("code"), redirect_uri: origin + "/api?a=cb&p=" + p });
-    const hd = { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "user-agent": "itachicord/1.0" };
+    const hd = { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "user-agent": "pulsecord/1.0" };
     if (o.basic) hd.authorization = "Basic " + Buffer.from(cid + ":" + sec).toString("base64"); else { body.set("client_id", cid); body.set("client_secret", sec); }
     const tk = await (await fetch(o.tok, { method: "POST", headers: hd, body })).json();
-    const mh = { authorization: "Bearer " + tk.access_token, "user-agent": "itachicord/1.0", accept: "application/json" };
+    const mh = { authorization: "Bearer " + tk.access_token, "user-agent": "pulsecord/1.0", accept: "application/json" };
     if (o.hdr) mh["client-id"] = cid;
     const nm = o.name(await (await fetch(o.me, { headers: mh })).json());
     if (!nm) return new Response("Verknüpfung fehlgeschlagen", { status: 400 });
@@ -218,7 +218,7 @@ export default async (req) => {
     if (c?.view && s.owner !== me && !(s.mods || []).includes(me) && !(c.view !== "mods" && s.roles?.[me]?.n === c.view)) return false;
     return true;
   };
-  const pub = (u) => ({ name: u.name, uid: uidOf(u), status: u.status, activity: u.activity, pron: u.pron, dstyle: u.dstyle, links: u.links, conn: u.conn, created: u.created, dname: u.dname || "", ptheme: u.ptheme || "", verified: !!u.verified, bio: u.bio, color: u.color, hasav: !!u.avatar, avvid: !!u.avatar?.startsWith("data:video"), hasbn: !!u.banner, imv: u.imv || 0 });
+  const pub = (u) => ({ name: u.name, uid: uidOf(u), status: u.status, activity: u.activity, pron: u.pron, dstyle: u.dstyle, links: u.links, conn: u.conn, created: u.created, dname: u.dname || "", ptheme: u.ptheme || "", verified: !!u.verified, bio: u.bio, color: (u.color || "").toLowerCase() === "#c8102e" ? "#7b6cff" : u.color, hasav: !!u.avatar, avvid: !!u.avatar?.startsWith("data:video"), hasbn: !!u.banner, imv: u.imv || 0 });
   const srvPub = (s) => {
     const o = { ...s, icon: undefined, hasicon: !!s.icon };
     if (s.prof) { o.prof = {}; for (const [k, p] of Object.entries(s.prof)) o.prof[k] = { name: p.name, bio: p.bio, hasav: !!p.avatar, hasbn: !!p.banner, avvid: !!p.avatar?.startsWith("data:video"), v: p.v || 0 }; }
@@ -307,7 +307,7 @@ export default async (req) => {
     return J({ ok: 1 });
   }
   if (a === "tfa") {
-    if (b.op === "gen") { U.tmp = Array.from(crypto.randomBytes(16), (x) => B32[x % 32]).join(""); await put("u/" + me, U); return J({ secret: U.tmp, uri: `otpauth://totp/Itachicord:${me}?secret=${U.tmp}&issuer=Itachicord` }); }
+    if (b.op === "gen") { U.tmp = Array.from(crypto.randomBytes(16), (x) => B32[x % 32]).join(""); await put("u/" + me, U); return J({ secret: U.tmp, uri: `otpauth://totp/Pulsecord:${me}?secret=${U.tmp}&issuer=Pulsecord` }); }
     if (b.op === "on" && U.tmp && okTotp(U.tmp, b.code)) { U.tfa = U.tmp; delete U.tmp; await put("u/" + me, U); return J({ ok: 1 }); }
     if (b.op === "off" && U.tfa && okTotp(U.tfa, b.code)) { delete U.tfa; await put("u/" + me, U); return J({ ok: 1 }); }
     return J({ error: "Code falsch" }, 400);
@@ -499,7 +499,7 @@ export default async (req) => {
     else if (op === "icon") { if (!b.data) { delete s.icon; } else { if (!/^data:image\//.test(b.data) || b.data.length > 150000) return J({ error: "Icon zu groß (max ~100 KB)" }, 400); s.icon = b.data; } s.iv = Date.now(); lg("server-icon"); }
     else if (op === "slow") { (s.slow ||= {})[clean(b.ch)] = Math.min(21600, +v || 0); lg("slowmode " + b.ch + " " + v + "s"); }
     else if (op === "words") { s.words = String(v).toLowerCase().split(",").map((x) => x.trim()).filter(Boolean); lg("automod aktualisiert"); }
-    else if (op === "role") { if (!s.members.includes(t)) return J({ error: "Ungültiges Ziel" }, 400); (s.roles ||= {})[t] = { n: String(b.n || "").slice(0, 20), c: /^#[0-9a-f]{6}$/i.test(b.c) ? b.c : "#c8102e" }; lg("rolle " + t); }
+    else if (op === "role") { if (!s.members.includes(t)) return J({ error: "Ungültiges Ziel" }, 400); (s.roles ||= {})[t] = { n: String(b.n || "").slice(0, 20), c: /^#[0-9a-f]{6}$/i.test(b.c) ? b.c : "#7b6cff" }; lg("rolle " + t); }
     else if (op === "rmrole") { if (s.roles) delete s.roles[t]; lg("rolle entfernt " + t); }
     else if (op === "delrole") { for (const m of roleOf(String(v))) delete s.roles[m]; lg("rolle gelöscht " + v); }
     else if (op === "cmd") { const [n, ...r] = String(v).split("="); (s.cmds ||= {})[clean(n)] = r.join("=").slice(0, 500); lg("command /" + n); }

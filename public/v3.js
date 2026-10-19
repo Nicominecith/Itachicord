@@ -1,4 +1,4 @@
-/* ===== Itachicord v3: @Erwähnungen, Discord-Popups, Systembenachrichtigungen, Handy-/Tablet-Helfer ===== */
+/* ===== Pulsecord v3: @Erwähnungen, Discord-Popups, Systembenachrichtigungen, Handy-/Tablet-Helfer ===== */
 (()=>{
 "use strict";
 const G=id=>document.getElementById(id);
@@ -50,9 +50,10 @@ window.ntfPop=ntfPop;
 /* ---------- Systembenachrichtigung (App im Hintergrund) ---------- */
 function ntfNative(x){
   try{
+    if(window.AndroidApp&&window.AndroidApp.notify){const t0=x.k=="call"?"📞 Anruf von "+x.u:x.s?`${x.u} (#${x.c}, ${x.s})`:x.u;AndroidApp.notify(t0,(LBL[x.k]?LBL[x.k]+": ":"")+(x.tx||""),x.ch||"",x.k=="call"?1:0);return}
     if(typeof Notification=="undefined"||Notification.permission!="granted")return;
     const u=U[x.u]||{},title=x.k=="call"?"📞 Anruf von "+x.u:x.s?`${x.u} (#${x.c}, ${x.s})`:x.u;
-    const o={body:(LBL[x.k]?LBL[x.k]+": ":"")+(x.tx||""),icon:u.avatar&&!u.avvid?u.avatar:"/icon-192.png",badge:"/icon-192.png",tag:x.ch||"itachicord",renotify:true,data:{ch:x.ch}};
+    const o={body:(LBL[x.k]?LBL[x.k]+": ":"")+(x.tx||""),icon:u.avatar&&!u.avvid?u.avatar:"/icon-192.png",badge:"/icon-192.png",tag:x.ch||"pulsecord",renotify:true,data:{ch:x.ch}};
     const fb=()=>{try{const n=new Notification(title,o);n.onclick=()=>{window.focus();go(x);n.close()}}catch(e){}};
     if("serviceWorker"in navigator)navigator.serviceWorker.ready.then(r=>r.showNotification(title,o)).catch(fb);else fb();
   }catch(e){}
@@ -64,7 +65,7 @@ addEventListener("pointerdown",()=>{try{if(Notification.permission=="default")No
 /* ---------- Ungelesen-Zähler (Titel + rote Badges an Server/DMs/Kanälen) ---------- */
 const UN={};
 const tot=()=>Object.values(UN).reduce((a,b)=>a+b,0);
-const ttl=()=>{const n=tot();document.title=(n?`(${n}) `:"")+"Itachicord"};
+const ttl=()=>{const n=tot();document.title=(n?`(${n}) `:"")+"Pulsecord"};
 function setBadge(e,n,cl){
   let b=e.querySelector(":scope>i.ub");
   if(!n){if(b)b.remove();return}

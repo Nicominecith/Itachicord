@@ -1,4 +1,4 @@
-/* ===== Itachicord v4 ===== */
+/* ===== Pulsecord v4 ===== */
 (function(){
 "use strict";
 const Q=s=>document.querySelector(s);

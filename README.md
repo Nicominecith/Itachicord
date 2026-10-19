@@ -1,11 +1,11 @@
-# Itachicord auf Netlify
+# Pulsecord auf Netlify
 
 1. Ordner auf GitHub pushen -> Netlify: "Add new site > Import from Git" (Build-Einstellungen kommen aus netlify.toml). Alternativ: `npx netlify-cli deploy --prod`.
 2. Netlify Blobs braucht keine Einrichtung.
 3. Optional (Konten-Verknüpfung): Site settings > Environment variables:
    OAUTH_GITHUB_ID / _SECRET, OAUTH_SPOTIFY_ID / _SECRET, OAUTH_TWITCH_ID / _SECRET, OAUTH_REDDIT_ID / _SECRET, OAUTH_YOUTUBE_ID / _SECRET (Google), STEAM_KEY (optional, für den Steam-Namen).
-   Redirect-URL beim jeweiligen Anbieter: https://DEINE-SEITE.netlify.app/api?a=cb&p=github (p = spotify, twitch, reddit, youtube). Steam braucht keine Registrierung.
-4. Desktop: `cd desktop && npm i && ITACHICORD_URL=https://DEINE-SEITE.netlify.app npm start`
+   Redirect-URL beim jeweiligen Anbieter: https://pulsecord.netlify.app/api?a=cb&p=github (p = spotify, twitch, reddit, youtube). Steam braucht keine Registrierung.
+4. Desktop: `cd desktop && npm i && PULSECORD_URL=https://pulsecord.netlify.app npm start`
 5. Handy-App: `cd mobile`, URL in capacitor.config.json eintragen, dann `npm i @capacitor/cli @capacitor/core @capacitor/android @capacitor/ios && npx cap add android`.
 
 ## GIFs (GIPHY)
@@ -31,7 +31,7 @@ Nutzer können beim Registrieren oder im Profil (📧 E-Mail) eine Adresse hinte
 - **Grenze:** Systembenachrichtigungen kommen, solange die App/der Tab läuft (auch im Hintergrund). Bei komplett geschlossener App bräuchte es Web-Push (VAPID-Schlüssel + `web-push`) – das ist nicht eingebaut.
 
 ## Neu (v4): Logo, Management, Bann, Nutzer-ID, Hintergrundbild
-- **Logo/Icons:** Neues App-Logo (`public/logo.png`, `icon-192/512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, Favicons). Es gibt keine SVG-Grafiken mehr; das Sharingan-Zeichen (`sharingan.png`) ist als zweites App-Icon wählbar. Splash/Ladebildschirm und Anmeldefenster zeigen das Logo. Desktop: `desktop/icon.png`. Handy (Capacitor): `mobile/assets/icon-only.png` + `splash.png` → `npx @capacitor/assets generate`.
+- **Logo/Icons:** Neues App-Logo (`public/logo.png`, `icon-192/512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, Favicons). Es gibt keine SVG-Grafiken mehr; das Knoten-Emblem (`emblem.png`) ist als zweites App-Icon wählbar. Splash/Ladebildschirm und Anmeldefenster zeigen das Logo. Desktop: `desktop/icon.png`. Handy (Capacitor): `mobile/assets/icon-only.png` + `splash.png` → `npx @capacitor/assets generate`.
 - **Nutzer-ID:** Jeder hat eine feste 18-stellige ID. Zu sehen im Profil (Klick oder Rechtsklick = kopieren). Rechtsklick (am Handy: lange drücken) auf Avatar/Namen öffnet ein Menü: ID kopieren, Name kopieren, Profil, Nachricht.
 - **Management (`/management.html`):** Nur für Admins. Konten suchen (Name, ID, E-Mail), **bannen/entbannen** (Gebannte können nur noch lesen: keine Nachrichten, keine Server erstellen/beitreten, keine Änderungen) und **Konten löschen** (inkl. eigener Server). Admin ist standardmäßig das Konto `nicominecith`; weitere Admins über die Netlify-Variable `ADMIN_USERS` (Namen, Komma-getrennt). Admins sehen im Profil den Knopf „Management öffnen“.
 - **Hintergrundbild:** Profil/Einstellungen → Hintergrundbild (wird pro Gerät gespeichert, Abdunkeln einstellbar).
@@ -39,7 +39,7 @@ Nutzer können beim Registrieren oder im Profil (📧 E-Mail) eine Adresse hinte
 - **Nicht stören:** Keine Töne mehr (auch Join/Leave/Senden), keine Popups, keine Anrufe.
 
 ## Neu (v5): Fehlende Yapper-Features nachgerüstet
-Datei `public/v5.js` (+ Erweiterungen in `netlify/functions/api.mjs`). Nach dem Deploy einmal hart neu laden (Service-Worker-Cache heißt jetzt `itachicord-v5`).
+Datei `public/v5.js` (+ Erweiterungen in `netlify/functions/api.mjs`). Nach dem Deploy einmal hart neu laden (Service-Worker-Cache heißt jetzt `pulsecord-v6`).
 - **Crop-Tool:** Beim Hochladen von Avatar, Banner, Server-Icon/-Banner und Gruppenbild öffnet sich ein Zuschnitt-Fenster (ziehen + zoomen). GIFs bleiben unverändert animiert (kein Zuschnitt, damit die Animation nicht verloren geht).
 - **Anzeigenamen:** Profil → „Anzeigename“. Der @Benutzername bleibt eindeutig; der Anzeigename erscheint in Nachrichten, Profilkarte, Mitgliederliste, Gruppen.
 - **Verifiziert-Haken (✔):** Admins setzen/entfernen ihn über die Profilkarte eines Nutzers („Verifizieren (Admin)“; API `adm_verify`).
@@ -58,3 +58,19 @@ Datei `public/v5.js` (+ Erweiterungen in `netlify/functions/api.mjs`). Nach dem 
 ### Fix (v5.1)
 - Kanal-Zahnrad ⚙ war durch Drag&Drop blockiert (Firefox): Zeilen sind jetzt nur noch beim Greifen verschiebbar, Buttons bleiben immer klickbar.
 - Gruppenchats starteten beim Klick auf 🎤 einen Klingelton, der nie aufhörte: Sprachanrufe sind in Gruppen jetzt gesperrt (Client + Server).
+
+### Sound-Fixes (v5.2)
+- Nachrichtenton funktioniert jetzt auch in Kanälen mit ≥200 Nachrichten (vorher verstummte er dort).
+- Töne werden entprellt (kein Überlappen/Stottern bei vielen Nachrichten), der AudioContext wird bei Fokus-/Sichtbarkeitswechsel zuverlässig geweckt.
+- Soundboard-/Eintrittssounds: Autoplay-Fehler abgefangen, respektieren „Töne aus“ und „Nicht stören“.
+- Klingelton: startet nie doppelt, stoppt sofort, wenn du im Anruf bist oder auf „Nicht stören“ gehst.
+- Fehlende/kaputte Sound-Dateien (HTTP-Fehler) werden sauber erkannt.
+
+### Android-App
+Siehe `pulsecord-android-src.zip` (Build mit `./build.sh`). Die App lädt https://pulsecord.netlify.app.
+
+### Umbenennung zu Pulsecord
+- Neues Logo (Knoten-Emblem), blau-violettes Design, alle Itachi-/Sharingan-/Naruto-Bezüge entfernt (App-Themes heißen jetzt Rot, Korall, Bernstein … Karmesin).
+- Alte rote Standard-Akzentfarben werden automatisch auf das neue Blau-Violett umgestellt.
+- Der interne Datenspeicher heißt weiterhin `itachicord` (nur im Code, unsichtbar) – bitte NICHT ändern, sonst sind bestehende Konten/Server weg.
+- Netlify: Site-Namen unter *Site configuration → Change site name* auf `pulsecord` ändern, dann ist die Seite unter https://pulsecord.netlify.app erreichbar. Die Daten bleiben erhalten.

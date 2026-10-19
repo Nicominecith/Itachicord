@@ -1,7 +1,7 @@
 {
-  "name": "Itachicord",
-  "short_name": "Itachicord",
-  "description": "Itachicord – Chat, Calls und Server",
+  "name": "Pulsecord",
+  "short_name": "Pulsecord",
+  "description": "Pulsecord – Chat, Calls und Server",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

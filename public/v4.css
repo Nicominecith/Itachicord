@@ -1,13 +1,13 @@
-/* ===== Itachicord v4: Logo, Hintergrundbild, Zoom, Kontextmenü, Bann-Anzeige, Feinschliff ===== */
+/* ===== Pulsecord v4: Logo, Hintergrundbild, Zoom, Kontextmenü, Bann-Anzeige, Feinschliff ===== */
 
 /* --- Splash / Ladebildschirm mit App-Logo --- */
 #boot{background:radial-gradient(60vmax 60vmax at 50% 38%,#3b1470 0%,#0d0720 60%,#07040f 100%);gap:20px}
-#boot .lg{width:min(168px,40vw);height:auto;aspect-ratio:1;border-radius:26%;box-shadow:0 24px 80px #c8102e66,0 0 0 1px #ffffff1f;animation:lgf 2.8s ease-in-out infinite}
+#boot .lg{width:min(168px,40vw);height:auto;aspect-ratio:1;border-radius:26%;box-shadow:0 24px 80px #7b6cff66,0 0 0 1px #ffffff1f;animation:lgf 2.8s ease-in-out infinite}
 #boot .ld{width:min(180px,50vw);height:4px;border-radius:4px;background:#ffffff1c;overflow:hidden}
-#boot .ld i{display:block;height:100%;width:40%;border-radius:4px;background:linear-gradient(90deg,#c8102e,#ff7a45,#c8102e);animation:ldb 1.2s ease-in-out infinite}
+#boot .ld i{display:block;height:100%;width:40%;border-radius:4px;background:linear-gradient(90deg,#5aa9ff,#9b5cff,#5aa9ff);animation:ldb 1.2s ease-in-out infinite}
 @keyframes lgf{50%{transform:translateY(-6px) scale(1.02)}}
 @keyframes ldb{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
-#auth .alg{width:92px;height:92px;border-radius:24px;margin:0 auto 2px;display:block;box-shadow:0 14px 44px #c8102e55,0 0 0 1px #ffffff1f}
+#auth .alg{width:92px;height:92px;border-radius:24px;margin:0 auto 2px;display:block;box-shadow:0 14px 44px #7b6cff55,0 0 0 1px #ffffff1f}
 
 /* --- Hintergrundbild (Einstellungen > Hintergrundbild) --- */
 body.hasbg::before{background:linear-gradient(rgba(7,4,16,var(--bgdim,.55)),rgba(7,4,16,var(--bgdim,.55))),var(--bgimg) center/cover no-repeat!important}
