@@ -50,16 +50,16 @@ window.ntfPop=ntfPop;
 /* ---------- Systembenachrichtigung (App im Hintergrund) ---------- */
 function ntfNative(x){
   try{
-    if(window.AndroidApp&&window.AndroidApp.notify){const t0=x.k=="call"?"📞 Anruf von "+x.u:x.s?`${x.u} (#${x.c}, ${x.s})`:x.u;AndroidApp.notify(t0,(LBL[x.k]?LBL[x.k]+": ":"")+(x.tx||""),x.ch||"",x.k=="call"?1:0);return}
+    if(window.AndroidApp&&window.AndroidApp.notify){if(AndroidApp.svcActive&&AndroidApp.svcActive())return;const t0=x.k=="call"?"📞 Anruf von "+x.u:x.s?`${x.u} (#${x.c}, ${x.s})`:x.u;AndroidApp.notify(t0,(LBL[x.k]?LBL[x.k]+": ":"")+(x.tx||""),x.ch||"",x.k=="call"?1:0);return}
     if(typeof Notification=="undefined"||Notification.permission!="granted")return;
     const u=U[x.u]||{},title=x.k=="call"?"📞 Anruf von "+x.u:x.s?`${x.u} (#${x.c}, ${x.s})`:x.u;
-    const o={body:(LBL[x.k]?LBL[x.k]+": ":"")+(x.tx||""),icon:u.avatar&&!u.avvid?u.avatar:"/icon-192.png",badge:"/icon-192.png",tag:x.ch||"pulsecord",renotify:true,data:{ch:x.ch}};
+    const o={body:(LBL[x.k]?LBL[x.k]+": ":"")+(x.tx||""),icon:u.avatar&&!u.avvid?u.avatar:"/icon-192.png",badge:"/icon-192.png",tag:x.k=="call"?"call":(x.ch||"pulsecord"),renotify:true,data:{ch:x.ch,k:x.k},vibrate:x.k=="call"?[500,250,500,250,500,250,500]:[120,60,120],requireInteraction:x.k=="call"};if(x.k=="call")o.actions=[{action:"accept",title:"✅ Annehmen"},{action:"decline",title:"❌ Ablehnen"}];
     const fb=()=>{try{const n=new Notification(title,o);n.onclick=()=>{window.focus();go(x);n.close()}}catch(e){}};
     if("serviceWorker"in navigator)navigator.serviceWorker.ready.then(r=>r.showNotification(title,o)).catch(fb);else fb();
   }catch(e){}
 }
 window.ntfNative=ntfNative;
-if("serviceWorker"in navigator)navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.open)goTo(e.data.open)});
+if("serviceWorker"in navigator)navigator.serviceWorker.addEventListener("message",e=>{const d=e.data||{};if(d.open){goTo(d.open);if(d.accept&&window.pcAcceptCall)window.pcAcceptCall(d.open)}if(d.resub&&window.pcPushSync)window.pcPushSync(1)});
 addEventListener("pointerdown",()=>{try{if(Notification.permission=="default")Notification.requestPermission()}catch(e){}},{once:true});
 
 /* ---------- Ungelesen-Zähler (Titel + rote Badges an Server/DMs/Kanälen) ---------- */
@@ -180,5 +180,5 @@ tx.addEventListener("focus",()=>setTimeout(()=>{const m=G("msgs");m.scrollTop=m.
   else if(dx<0&&sd.classList.contains("open"))sd.classList.remove("open");
  },{passive:true});}
 // Link aus Systembenachrichtigung (?open=…)
-{let n=0;const iv=setInterval(()=>{if(++n>40)return clearInterval(iv);if(ME&&S){clearInterval(iv);const o=new URLSearchParams(location.search).get("open");if(o){history.replaceState(0,"","/");goTo(o)}}},500)}
+{let n=0;const iv=setInterval(()=>{if(++n>40)return clearInterval(iv);if(ME&&S){clearInterval(iv);const qp=new URLSearchParams(location.search),o=qp.get("open");if(o){history.replaceState(0,"","/");goTo(o);if(qp.get("acc")=="1"&&window.pcAcceptCall)setTimeout(()=>window.pcAcceptCall(o),400)}}},500)}
 })();

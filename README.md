@@ -4,8 +4,8 @@
 2. Netlify Blobs braucht keine Einrichtung.
 3. Optional (Konten-Verknüpfung): Site settings > Environment variables:
    OAUTH_GITHUB_ID / _SECRET, OAUTH_SPOTIFY_ID / _SECRET, OAUTH_TWITCH_ID / _SECRET, OAUTH_REDDIT_ID / _SECRET, OAUTH_YOUTUBE_ID / _SECRET (Google), STEAM_KEY (optional, für den Steam-Namen).
-   Redirect-URL beim jeweiligen Anbieter: https://pulsecord.netlify.app/api?a=cb&p=github (p = spotify, twitch, reddit, youtube). Steam braucht keine Registrierung.
-4. Desktop: `cd desktop && npm i && PULSECORD_URL=https://pulsecord.netlify.app npm start`
+   Redirect-URL beim jeweiligen Anbieter: https://pulsecords.netlify.app/api?a=cb&p=github (p = spotify, twitch, reddit, youtube). Steam braucht keine Registrierung.
+4. Desktop: `cd desktop && npm i && PULSECORD_URL=https://pulsecords.netlify.app npm start`
 5. Handy-App: `cd mobile`, URL in capacitor.config.json eintragen, dann `npm i @capacitor/cli @capacitor/core @capacitor/android @capacitor/ios && npx cap add android`.
 
 ## GIFs (GIPHY)
@@ -67,10 +67,20 @@ Datei `public/v5.js` (+ Erweiterungen in `netlify/functions/api.mjs`). Nach dem 
 - Fehlende/kaputte Sound-Dateien (HTTP-Fehler) werden sauber erkannt.
 
 ### Android-App
-Siehe `pulsecord-android-src.zip` (Build mit `./build.sh`). Die App lädt https://pulsecord.netlify.app.
+Siehe `pulsecord-android-src.zip` (Build mit `./build.sh`). Die App lädt https://pulsecords.netlify.app.
 
 ### Umbenennung zu Pulsecord
 - Neues Logo (Knoten-Emblem), blau-violettes Design, alle Itachi-/Sharingan-/Naruto-Bezüge entfernt (App-Themes heißen jetzt Rot, Korall, Bernstein … Karmesin).
 - Alte rote Standard-Akzentfarben werden automatisch auf das neue Blau-Violett umgestellt.
 - Der interne Datenspeicher heißt weiterhin `itachicord` (nur im Code, unsichtbar) – bitte NICHT ändern, sonst sind bestehende Konten/Server weg.
 - Netlify: Site-Namen unter *Site configuration → Change site name* auf `pulsecord` ändern, dann ist die Seite unter https://pulsecord.netlify.app erreichbar. Die Daten bleiben erhalten.
+
+## Neu (v6): Push-Benachrichtigungen, Anrufe als Benachrichtigung, Design-Update
+**Benachrichtigungen bei geschlossener App**
+- **Web/PWA (Chrome, Edge, Firefox, Safari ab iOS 16.4 als installierte App):** Beim ersten Start fragt eine Leiste „Benachrichtigungen aktivieren". Danach kommen Nachrichten, @Erwähnungen, Antworten, Freundschaftsanfragen und Anrufe per **Web-Push** – auch wenn der Tab/die App zu ist. Der Server (`netlify/functions/api.mjs`) erzeugt die VAPID-Schlüssel beim ersten Mal selbst und speichert sie – **keine Einrichtung nötig**. Optional eigene Schlüssel: Netlify-Variablen `VAPID_PUBLIC` / `VAPID_PRIVATE`. Neue Abhängigkeit: `web-push` (wird von Netlify automatisch installiert).
+- **Anrufe:** Die Benachrichtigung zeigt „📞 Anruf von …" mit den Knöpfen **Annehmen / Ablehnen**, vibriert und bleibt stehen, bis du reagierst. „Annehmen" öffnet Pulsecord und tritt dem Anruf direkt bei.
+- Ist die App offen und sichtbar, gibt es kein doppeltes System-Popup (dort erscheint wie bisher die Karte in der App). „Nicht stören" und stummgeschaltete Server werden respektiert.
+- **Android-App (`pulsecord-android-src.zip`, v1.1):** Neuer Hintergrunddienst (`PollService`). Er läuft nach der Anmeldung dauerhaft (leise Dauer-Benachrichtigung „Bereit für Nachrichten und Anrufe"), fragt den Server alle 3 s ab und zeigt Nachrichten gebündelt pro Chat. **Anrufe klingeln** (Klingelton `res/raw/call.mp3` + Vibration, je nach Klingelmodus), mit Annehmen/Ablehnen und Vollbild über dem Sperrbildschirm. Startet nach Neustart/Update automatisch (`BootReceiver`). Beim ersten Start wird einmalig gefragt, die Akku-Optimierung auszuschalten – das ist wichtig, damit Android den Dienst nicht einschläft. Android 13+: Benachrichtigungen beim ersten Start erlauben.
+- Server-Erweiterungen: `a=pushkey`, `a=pushsub`, `a=pushunsub`; `a=inbox` liefert zusätzlich `ring`, `dnd` und `fin` (offene Freundschaftsanfragen).
+
+**Design (`public/v6.css`)**: ruhiges Aurora-Licht im Hintergrund, Glas-Flächen mit feinem Lichtrand, weichere Animationen (Server-Icons, Kanalliste, Eingabefeld mit Glow-Fokus, Karten/Fenster), überarbeitete Buttons, **neuer Vollbild-Anrufbildschirm** (pulsierender Avatar, runde Annehmen-/Ablehnen-Knöpfe), neue Hinweisleiste für Benachrichtigungen. Der Service-Worker-Cache heißt jetzt `pulsecord-v7` – nach dem Deploy einmal hart neu laden.

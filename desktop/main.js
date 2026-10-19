@@ -3,7 +3,7 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const { exec } = require("child_process");
-const URL = process.env.PULSECORD_URL || "https://pulsecord.netlify.app";
+const URL = process.env.PULSECORD_URL || "https://pulsecords.netlify.app";
 const GAMES = { valorant: "Valorant", fortniteclient: "Fortnite", eldenring: "Elden Ring", minecraft: "Minecraft", cs2: "Counter-Strike 2", leagueclient: "League of Legends", dota2: "Dota 2", gta5: "GTA V" }; // beliebig erweitern
 app.whenReady().then(() => {
   const w = new BrowserWindow({ width: 1280, height: 800, backgroundColor: "#09061a", icon: path.join(__dirname, "icon.png"), autoHideMenuBar: true, webPreferences: { backgroundThrottling: false } });

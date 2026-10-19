@@ -1,0 +1,124 @@
+/* ===== Pulsecord v6: Design-Update (Aurora-Glas 2.0), Anruf-Bildschirm, Benachrichtigungs-Hinweis ===== */
+:root{
+  --r:26px;--r2:18px;--ease:cubic-bezier(.22,1,.36,1);
+  --acc:#8b5cf6;--acc2:#6366f1;--acc3:#38bdf8;
+  --glow:0 10px 34px #7c3aed55;
+  --edge:inset 0 1px 0 #ffffff1c,inset 0 0 0 1px #ffffff0a;
+}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{letter-spacing:.005em;font-feature-settings:"cv11","ss01";-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+/* --- Hintergrund: ruhiges, langsames Aurora-Licht --- */
+body::before{background:
+  radial-gradient(46vmax 46vmax at 8% 12%,#7c3aed9a,transparent 62%),
+  radial-gradient(40vmax 40vmax at 94% 6%,#2563eb5c,transparent 62%),
+  radial-gradient(44vmax 44vmax at 70% 104%,#c026d35e,transparent 62%),
+  radial-gradient(30vmax 30vmax at 28% 92%,#0ea5e940,transparent 62%),var(--bg);
+  background-size:140% 140%;animation:aur 26s ease-in-out infinite alternate}
+@keyframes aur{from{background-position:0 0}to{background-position:100% 60%}}
+
+/* --- Glas-Flächen: weicher, mit feinem Lichtrand --- */
+#rail,#side,#main{box-shadow:0 18px 60px #00000066,var(--edge);border-color:#ffffff14}
+#hd{background:linear-gradient(180deg,#ffffff0d,#ffffff04);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);position:relative;z-index:2}
+#hd>b{font-size:16.5px;letter-spacing:-.015em}
+
+/* --- Server-Leiste --- */
+#rail{padding:14px 0;gap:12px}
+.ic{transition:border-radius .3s var(--ease),transform .25s var(--ease),box-shadow .25s,background .2s;font-size:15px}
+.ic:hover{transform:translateY(-2px) scale(1.05);box-shadow:0 8px 22px #0006}
+.ic.on{box-shadow:0 8px 26px #8b5cf68c,inset 0 1px 0 #ffffff40}
+.ic .bdg,i.bdg{box-shadow:0 0 0 3px var(--bg),0 4px 10px #ef44448c}
+
+/* --- Kanal-/DM-Liste --- */
+#side h3{background:linear-gradient(90deg,#ffffff0d,transparent);margin:6px 8px 4px;border-radius:16px;padding:14px 14px 12px;transition:background .2s}
+.it{position:relative;transition:background .18s,color .18s,transform .18s var(--ease)}
+.it:hover{transform:translateX(2px)}
+.it.on:before{content:"";position:absolute;left:0;top:22%;bottom:22%;width:3px;border-radius:3px;background:linear-gradient(var(--acc3),var(--acc))}
+#me{box-shadow:var(--edge),0 8px 24px #0004}
+
+/* --- Nachrichten --- */
+#msgs{scroll-padding:20px}
+.m{border-radius:18px;padding:9px 14px;gap:12px}
+.m:hover{background:linear-gradient(90deg,#ffffff0c,#ffffff05)}
+.m .av{width:40px;height:40px;transition:transform .2s var(--ease),box-shadow .2s}
+.m:hover .av{transform:scale(1.06)}
+.m .b{line-height:1.5}
+.n{font-weight:700}
+.tm{font-size:11.5px;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.m .ac{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+img.at,video.at{box-shadow:0 10px 30px #0006;transition:transform .25s var(--ease)}
+img.at:hover{transform:scale(1.015)}
+.rx{transition:transform .15s var(--ease),background .15s}.rx:hover{transform:translateY(-1px) scale(1.06);background:#ffffff1c}
+.rp{font-style:normal}
+.mn{box-shadow:inset 0 0 0 1px #8b5cf655}
+
+/* --- Eingabe --- */
+#in{border-radius:26px;transition:box-shadow .25s,border-color .25s;box-shadow:0 12px 34px #0000004d,var(--edge)}
+#in:focus-within{border-color:#8b5cf688;box-shadow:0 12px 40px #7c3aed40,0 0 0 4px #8b5cf61f,var(--edge)}
+#in>button:not(:last-child):hover{background:#ffffff22;transform:translateY(-1px)}
+#in>button:last-child{background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:var(--glow),inset 0 1px 0 #ffffff40}
+
+/* --- Buttons, Felder --- */
+button{transition:background .18s,border-color .18s,transform .12s var(--ease),box-shadow .2s}
+button.pri,.pri{background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:var(--glow),inset 0 1px 0 #ffffff40;border:0;color:#fff;font-weight:700}
+button.pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+button.pri:active{transform:scale(.97)}
+input,textarea,select{transition:border-color .18s,box-shadow .18s,background .18s}
+input:focus,textarea:focus,select:focus{background:#ffffff14}
+
+/* --- Karten / Fenster --- */
+.card{box-shadow:0 30px 90px #000000b0,var(--edge);animation:cin .35s var(--ease) both}
+@keyframes cin{from{opacity:0;transform:translateY(14px) scale(.97)}}
+#modal,#auth{animation:fin .25s ease both}@keyframes fin{from{opacity:0}}
+#auth .card{background:color-mix(in srgb,var(--bg2) 72%,transparent)}
+#auth .alg{animation:lgf 3.2s ease-in-out infinite}
+
+/* --- Toasts --- */
+#toasts>*{border-radius:16px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 14px 40px #000a,var(--edge)}
+
+/* --- Benachrichtigungs-Popups (Nachrichten/Erwähnungen/Freunde) --- */
+.np{border-radius:20px;box-shadow:0 18px 50px #000c,var(--edge);transition:transform .25s var(--ease),border-color .2s,background .2s}
+.np:hover{transform:translateY(-2px)}
+.np.k-call{border-color:#22c55e88}
+
+/* --- Hinweisleiste „Benachrichtigungen aktivieren“ --- */
+#ntfbar{position:fixed;z-index:55;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100vw - 20px));display:flex;align-items:center;gap:12px;padding:12px 12px 12px 16px;border-radius:22px;background:color-mix(in srgb,var(--bg2) 88%,transparent);border:1px solid #8b5cf666;box-shadow:0 20px 60px #000c,0 0 0 1px #ffffff10,0 0 40px #7c3aed33;backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);animation:nbin .5s var(--ease) both}
+@keyframes nbin{from{opacity:0;transform:translate(-50%,24px) scale(.96)}}
+#ntfbar .nbi{font-size:26px;animation:bell 2.4s ease-in-out infinite;transform-origin:50% 0}
+@keyframes bell{0%,60%,100%{transform:rotate(0)}66%{transform:rotate(14deg)}72%{transform:rotate(-12deg)}78%{transform:rotate(8deg)}84%{transform:rotate(-5deg)}}
+#ntfbar .nbt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+#ntfbar .nbt b{font-size:14.5px}#ntfbar .nbt span{font-size:12.5px;color:var(--mu)}
+#ntfbar .nbon{padding:10px 16px;border-radius:14px;white-space:nowrap}
+#ntfbar .nbx{width:32px;height:32px;padding:0;border-radius:50%;border:0;background:#ffffff10;flex:none}
+body:has(#ringbox) #ntfbar{display:none}
+
+/* --- Eingehender Anruf: Vollbild-Anrufbildschirm --- */
+#ringbox{z-index:90;background:radial-gradient(70vmax 70vmax at 50% 30%,#4c1d95cc,#0b0720f2 70%);animation:fin .3s ease both}
+#ringbox .card{background:transparent;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;width:min(420px,92vw);gap:6px;align-items:center;padding:0;animation:cin .5s var(--ease) both}
+#ringbox .rgn{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:#c4b5fd;font-weight:700;margin-bottom:34px;animation:blk 1.6s ease-in-out infinite}
+@keyframes blk{50%{opacity:.45}}
+#ringbox .av{width:132px;height:132px;font-size:52px;margin:0 auto 26px;position:relative;border-width:3px;animation:none;overflow:visible;box-shadow:0 0 0 6px #ffffff14,0 20px 60px #7c3aed99}
+#ringbox .av:before,#ringbox .av:after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid #a78bfa;opacity:0;animation:rgp 2.2s ease-out infinite;pointer-events:none}
+#ringbox .av:after{animation-delay:1.1s}
+@keyframes rgp{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.9);opacity:0}}
+#ringbox .av .pd{display:none}
+#ringbox h3{font-size:26px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px;text-align:center}
+#ringbox .dr{margin-top:56px;width:100%;justify-content:center;gap:56px}
+#ringbox .dr button{flex:none;width:76px;height:76px;border-radius:50%;padding:0;border:0;font-size:0;position:relative;color:#fff;transition:transform .2s var(--ease)}
+#ringbox .dr button:hover{transform:scale(1.08)}
+#ringbox .dr button:before{content:"";position:absolute;inset:0;display:grid;place-items:center;font-size:30px;line-height:76px;text-align:center}
+#ringbox .dr .dc{background:linear-gradient(135deg,#ef4444,#be123c);box-shadow:0 12px 34px #ef444488}
+#ringbox .dr .dc:before{content:"📵"}
+#ringbox .dr .dk{background:linear-gradient(135deg,#22c55e,#15803d);box-shadow:0 12px 34px #22c55e88;animation:shk2 1.1s ease-in-out infinite}
+#ringbox .dr .dk:before{content:"📞"}
+@keyframes shk2{0%,60%,100%{transform:rotate(0)}10%,30%,50%{transform:rotate(-12deg)}20%,40%{transform:rotate(12deg)}}
+#ringbox .dr button:after{content:attr(data-l);position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%);font-size:12.5px;font-weight:700;color:#e9e3ff;white-space:nowrap}
+
+/* --- Handy --- */
+@media(max-width:700px){
+  #ntfbar{bottom:calc(76px + env(safe-area-inset-bottom));border-radius:20px}
+  #ringbox .av{width:112px;height:112px;font-size:44px}
+  #ringbox .dr{gap:44px;margin-top:48px}
+  .m{padding:7px 8px}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}

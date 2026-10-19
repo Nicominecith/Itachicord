@@ -13,7 +13,7 @@ const wo = (l, x) => (l || []).filter((y) => y !== x);
 // Feste 18-stellige Nutzer-ID (wie bei Discord) – wird aus Name + Erstellzeit berechnet, braucht keine Migration
 const uidOf = (u) => String(100000000000000000n + (BigInt("0x" + crypto.createHash("sha256").update("itachicord:" + u.name + ":" + (u.created || 0)).digest("hex").slice(0, 14)) % 800000000000000000n));
 // Diese Aktionen darf auch ein gebannter Nutzer (nur lesen)
-const READONLY = ["me", "users", "msgs", "inbox", "rels", "discover", "dl", "export", "vlist", "unring", "vleave", "adm_me"];
+const READONLY = ["me", "users", "msgs", "inbox", "rels", "discover", "dl", "export", "vlist", "unring", "vleave", "adm_me", "pushkey", "pushsub", "pushunsub"];
 // Gmail-SMTP: Netlify env GMAIL_USER (deine Gmail-Adresse) + GMAIL_APP_PASS (16-stelliges App-Passwort)
 const mailOn = () => !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASS);
 const mail = async (to, subject, text) => {
@@ -21,6 +21,29 @@ const mail = async (to, subject, text) => {
   await t.sendMail({ from: `Pulsecord <${process.env.GMAIL_USER}>`, to, subject, text });
 };
 const okMail = (e) => e.length <= 120 && /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(e);
+// ---- Web-Push: Benachrichtigungen auch bei geschlossener App (VAPID-Schlüssel werden automatisch erzeugt und gespeichert) ----
+const vapid = async (st) => {
+  if (process.env.VAPID_PUBLIC && process.env.VAPID_PRIVATE) return { publicKey: process.env.VAPID_PUBLIC, privateKey: process.env.VAPID_PRIVATE };
+  let k = await st.get("cfg/vapid", { type: "json" });
+  if (!k) { const w = (await import("web-push")).default; k = w.generateVAPIDKeys(); await st.setJSON("cfg/vapid", k); }
+  return k;
+};
+const sendPush = async (st, user, payload) => {
+  try {
+    let subs = (await st.get("ps/" + user, { type: "json" })) || [];
+    const srvId = String(payload.ch || "").split("/")[0];
+    subs = subs.filter((x) => !(payload.ch && !String(payload.ch).startsWith("dm:") && (x.mu || []).includes(srvId)));
+    if (!subs.length) return;
+    const w = (await import("web-push")).default, k = await vapid(st);
+    w.setVapidDetails("https://pulsecords.netlify.app", k.publicKey, k.privateKey);
+    const body = JSON.stringify(payload), dead = [];
+    await Promise.all(subs.map(async (x) => {
+      try { await w.sendNotification({ endpoint: x.endpoint, keys: x.keys }, body, { TTL: payload.k === "call" ? 30 : 3600, urgency: "high" }); }
+      catch (e) { if (e.statusCode === 404 || e.statusCode === 410) dead.push(x.endpoint); }
+    }));
+    if (dead.length) { const all = (await st.get("ps/" + user, { type: "json" })) || []; await st.setJSON("ps/" + user, all.filter((x) => !dead.includes(x.endpoint))); }
+  } catch (e) { /* Push darf nie etwas blockieren */ }
+};
 export const config = { path: "/api" };
 
 export default async (req) => {
@@ -198,7 +221,7 @@ export default async (req) => {
         } else { sv.members = wo(sv.members, T.name); sv.mods = wo(sv.mods, T.name); if (sv.roles) delete sv.roles[T.name]; await put("s/" + sv.id, sv); }
       }
       if (T.email && (await get("e/" + eh(T.email), "")) === T.name) await st.delete("e/" + eh(T.email));
-      await Promise.all([st.delete("u/" + T.name), st.delete("n/" + T.name), st.delete("r/" + T.name), st.delete("pr/" + T.name)]);
+      await Promise.all([st.delete("u/" + T.name), st.delete("n/" + T.name), st.delete("r/" + T.name), st.delete("pr/" + T.name), st.delete("ps/" + T.name)]);
       return J({ ok: 1 });
     }
     return J({ error: "?" }, 404);
@@ -395,6 +418,7 @@ export default async (req) => {
     } else if (a === "fdec") { U.fin = wo(U.fin, t); U.fout = wo(U.fout, t); T.fin = wo(T.fin, me); T.fout = wo(T.fout, me); }
     else { U.friends = wo(U.friends, t); T.friends = wo(T.friends, me); }
     await Promise.all([put("u/" + me, U), put("u/" + t, T)]);
+    if (a === "frq" && !auto && T.pst !== "dnd") await sendPush(st, t, { k: "friend", u: me, ch: "", tx: "hat dir eine Freundschaftsanfrage geschickt", i: "fr" + Date.now(), t: Date.now() });
     return J({ ...relOut(), auto });
   }
   if (a === "export") return J({ ...U, h: undefined, salt: undefined, tfa: undefined, tmp: undefined });
@@ -441,7 +465,13 @@ export default async (req) => {
     await put("h/" + k, { ch: b.ch, name: String(b.name || "Webhook") });
     return J({ url: "/api?a=hook&k=" + k });
   }
-  if (a === "ring") { const to = clean(b.to); if (!to || !String(b.room).startsWith("dm:") || /^dm:g/.test(String(b.room)) || !(await get("u/" + to, null)) || !(await allowed(b.room))) return J({ error: "forbidden" }, 403); await put("r/" + to, { from: me, room: b.room, t: Date.now() }); return J({ ok: 1 }); }
+  if (a === "ring") {
+    const to = clean(b.to); const tu = to ? await get("u/" + to, null) : null;
+    if (!to || !String(b.room).startsWith("dm:") || /^dm:g/.test(String(b.room)) || !tu || !(await allowed(b.room))) return J({ error: "forbidden" }, 403);
+    await put("r/" + to, { from: me, room: b.room, t: Date.now() });
+    if (tu.pst !== "dnd" && !(tu.blocked || []).includes(me)) await sendPush(st, to, { k: "call", u: me, ch: b.room, tx: "ruft dich an …", i: "ring" + Date.now(), t: Date.now() });
+    return J({ ok: 1 });
+  }
   if (a === "rings") { const r = await get("r/" + me, null); return J(r && Date.now() - r.t < 30000 ? r : {}); }
   if (a === "unring") { await st.delete("r/" + me); return J({ ok: 1 }); }
   if (a === "ringx") { const to = clean(b.to), r = await get("r/" + to, null); if (r && r.from === me) await st.delete("r/" + to); return J({ ok: 1 }); }
@@ -552,9 +582,20 @@ export default async (req) => {
   }
   if (a === "inbox") {
     const since = +q.get("since") || 0;
-    if (!since) return J({ now: Date.now(), items: [] });
-    return J({ items: (await get("n/" + me, [])).filter((x) => x.t >= since) });
+    const rg = await get("r/" + me, null), ring = rg && Date.now() - rg.t < 30000 ? rg : null, dnd = U.pst === "dnd";
+    if (!since) return J({ now: Date.now(), items: [], ring, dnd, fin: U.fin || [] });
+    return J({ now: Date.now(), items: (await get("n/" + me, [])).filter((x) => x.t >= since), ring, dnd, fin: U.fin || [] });
   }
+  if (a === "pushkey") return J({ key: (await vapid(st)).publicKey });
+  if (a === "pushsub") {
+    const sub = b.sub;
+    if (!sub || typeof sub.endpoint !== "string" || !sub.endpoint.startsWith("https://") || !sub.keys?.p256dh || !sub.keys?.auth) return J({ error: "Ungültiges Abo" }, 400);
+    const list = ((await get("ps/" + me, [])) || []).filter((x) => x.endpoint !== sub.endpoint);
+    list.push({ endpoint: sub.endpoint, keys: { p256dh: String(sub.keys.p256dh), auth: String(sub.keys.auth) }, mu: (Array.isArray(b.mu) ? b.mu : []).slice(0, 100).map((x) => String(x).slice(0, 40)), t: Date.now() });
+    await put("ps/" + me, list.slice(-5));
+    return J({ ok: 1 });
+  }
+  if (a === "pushunsub") { await put("ps/" + me, ((await get("ps/" + me, [])) || []).filter((x) => x.endpoint !== b.endpoint)); return J({ ok: 1 }); }
   if (a === "msgs") {
     const ch = q.get("ch");
     if (!(await allowed(ch))) return J({ error: "forbidden" }, 403);
@@ -614,9 +655,9 @@ export default async (req) => {
           const tu = await get("u/" + t, null);
           if (!tu || tu.blocked?.includes(me)) return;
           if (k === "here" && (tu.pst === "invisible" || Date.now() - (tu.seen || 0) > 90000)) return;
-          const ib = await get("n/" + t, []);
-          ib.push({ ...item, k: k === "here" ? "everyone" : k });
-          await put("n/" + t, ib.slice(-30));
+          const ib = await get("n/" + t, []), it = { ...item, k: k === "here" ? "everyone" : k };
+          ib.push(it);
+          await Promise.all([put("n/" + t, ib.slice(-30)), tu.pst === "dnd" ? null : sendPush(st, t, it)]);
         }));
       } catch (e) { /* Benachrichtigungen dürfen das Senden nie blockieren */ }
       m = m.slice(-200);

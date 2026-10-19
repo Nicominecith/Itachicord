@@ -410,7 +410,7 @@ body{height:var(--vvh,100dvh)}
  .ac button{min-width:42px;min-height:42px}
 }
 </style>
-<link rel="stylesheet" href="/v4.css"></head><body>
+<link rel="stylesheet" href="/v4.css"><link rel="stylesheet" href="/v6.css"></head><body>
 <div id="boot"><img class="lg" src="/logo.png" alt="Pulsecord" width="168" height="168"><div class="ld"><i></i></div><div>Pulsecord wird geladen …</div></div>
 <div id="auth"><div class="card"><img class="alg" src="/logo.png" alt="Pulsecord" width="96" height="96"><h2 id="at">Willkommen zurück</h2><p id="as" class="sub">Schön, dich wiederzusehen!</p>
 <label id="lm" class="hide"><span>E-Mail <b style="color:var(--red2)">*</b></span><input id="am" type="email" autocomplete="email" inputmode="email" autocapitalize="none"></label>
@@ -574,7 +574,7 @@ if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js").catch(
 let RG=null,RT;
 async function ringpoll(){if(!T||!ME)return;if(V||ME.pst=="dnd"){if(RG)ringHide();return}const r=await api("rings");if(r.room&&!RG&&r.from!=ME.name)ringShow(r);else if(!r.room&&RG)ringHide()}
 function ringHide(){clearInterval(RT);try{RS&&RS.stop()}catch(e){}RS=null;RG=null;document.getElementById("ringbox")?.remove()}
-function ringShow(r){try{RS&&RS.stop()}catch(e){}clearInterval(RT);RG=r;RS=sfx("ring",1);if(!RS)RT=setInterval(()=>sfx("ring"),1800);try{if(document.hidden)window.ntfNative&&window.ntfNative({u:r.from,k:"call",tx:"ruft dich an …",ch:r.room})}catch(e){}const d=document.createElement("div");d.id="ringbox";d.className="dlg";d.innerHTML=`<div class="card" style="text-align:center">${av(r.from)}<h3 style="margin:0">📞 ${esc(r.from)} ruft an…</h3><div class="dr"><button class="dc">Ablehnen</button><button class="pri dk">Annehmen</button></div></div>`;d.querySelector(".dc").onclick=()=>{ringHide();api("unring",{})};d.querySelector(".dk").onclick=()=>{const x=r;ringHide();api("unring",{});open_(x.room,"@"+x.from);vjoin()};document.body.append(d)}
+function ringShow(r){try{RS&&RS.stop()}catch(e){}clearInterval(RT);RG=r;RS=sfx("ring",1);if(!RS)RT=setInterval(()=>sfx("ring"),1800);try{if(document.hidden)window.ntfNative&&window.ntfNative({u:r.from,k:"call",tx:"ruft dich an …",ch:r.room})}catch(e){}const d=document.createElement("div");d.id="ringbox";d.className="dlg";d.innerHTML=`<div class="card" style="text-align:center">${av(r.from)}<h3 style="margin:0">📞 ${esc(r.from)} ruft an…</h3><div class="dr"><button class="dc" data-l="Ablehnen" aria-label="Ablehnen">Ablehnen</button><button class="pri dk" data-l="Annehmen" aria-label="Annehmen">Annehmen</button></div></div>`;d.querySelector(".dc").onclick=()=>{ringHide();api("unring",{})};d.querySelector(".dk").onclick=()=>{const x=r;ringHide();api("unring",{});open_(x.room,"@"+x.from);vjoin()};document.body.append(d)}
 setInterval(poll,2000);setInterval(ringpoll,2500);setInterval(vl,3000);
 </script>
-<script src="/v2.js"></script><script src="/v3.js"></script><script src="/v4.js"></script><script src="/v5.js"></script></body></html>
+<script src="/v2.js"></script><script src="/v3.js"></script><script src="/v4.js"></script><script src="/v5.js"></script><script src="/v6.js"></script></body></html>
