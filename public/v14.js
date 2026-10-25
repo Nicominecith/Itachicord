@@ -184,4 +184,11 @@
   var _sc = window.ssclose;
   if (_sc) window.ssclose = function () { if (dirty.size) { shake(); return; } dirty.clear(); paint(); return _sc.apply(this, arguments); };
   setInterval(paint, 600);
+  /* Bildschirm-teilen-Knopf immer sicherstellen (zwischen Kamera und ···) */
+  setInterval(function () {
+    var c = $("#vc"); if (!c || $("#vbs")) return;
+    var b = document.createElement("button"); b.className = "vb"; b.id = "vbs"; b.type = "button"; b.title = "Bildschirm teilen";
+    b.setAttribute("onclick", "scr()"); b.innerHTML = '<img src="/icons/vc/stream.png" alt="">';
+    var x = $("#vbx"); x ? c.insertBefore(b, x) : c.appendChild(b);
+  }, 700);
 })();
