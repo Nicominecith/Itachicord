@@ -74,7 +74,7 @@ const _me5 = me;
 me = function () {
   _me5();
   /* In der Android-App (WebView) gibt es kein getDisplayMedia -> Bildschirm-Button ausblenden */
-if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) { const st = document.createElement("style"); st.textContent = 'button[onclick*="scr()"]{display:none!important}'; document.head.appendChild(st); }
+/* v15: Bildschirm-Knopf bleibt immer sichtbar (auf Geräten ohne Freigabe zeigt scr() einen Hinweis) */
 applyMode();
   if (ME && ME.dname) { const b = document.querySelector("#me b"); if (b) b.textContent = ME.dname; }
 };
@@ -402,7 +402,7 @@ ecat = function (i) {
 };
 
 /* In der Android-App (WebView) gibt es kein getDisplayMedia -> Bildschirm-Button ausblenden */
-if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) { const st = document.createElement("style"); st.textContent = 'button[onclick*="scr()"]{display:none!important}'; document.head.appendChild(st); }
+/* v15: Bildschirm-Knopf bleibt immer sichtbar (auf Geräten ohne Freigabe zeigt scr() einen Hinweis) */
 
 /* ---------- Android-App: Downloads (Blob/Data) über die App-Brücke speichern ---------- */
 if (window.AndroidApp && AndroidApp.saveStart) {

@@ -352,6 +352,7 @@
     try {
       var r = await api("vsync", { room: v.room, out: batch });
       if (V !== v) return;
+      if (r && r.kick) { v.kicked = 1; setTimeout(function () { if (window.v15Kick) window.v15Kick(); else window.vleave(); }, 0); return; }
       if (!r || !r.users) { v.out.unshift.apply(v.out, batch); return; }
       if (!v.sent && ME.entrance) { v.sent = 1; r.users.filter(function (u) { return u != ME.name; }).forEach(function (u) { v.out.push({ to: u, data: { snd: 1, url: ME.entrance } }); }); }
       if (v.n && r.users.length > v.n) sfx("join");

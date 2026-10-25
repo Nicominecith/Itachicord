@@ -13,6 +13,8 @@ const wo = (l, x) => (l || []).filter((y) => y !== x);
 // Feste 18-stellige Nutzer-ID (wie bei Discord) – wird aus Name + Erstellzeit berechnet, braucht keine Migration
 const uidOf = (u) => String(100000000000000000n + (BigInt("0x" + crypto.createHash("sha256").update("itachicord:" + u.name + ":" + (u.created || 0)).digest("hex").slice(0, 14)) % 800000000000000000n));
 // Diese Aktionen darf auch ein gebannter Nutzer (nur lesen)
+// Anruf klingelt 2 Minuten; allein im privaten Anruf: nach 15 Min. wirft die "Netzwerkpolizei" raus (nur 1:1-DMs)
+const RING_MS = 120000, ALONE_MS = 15 * 60000;
 const READONLY = ["me", "users", "msgs", "inbox", "rels", "discover", "dl", "export", "vlist", "unring", "vleave", "adm_me", "pushkey", "pushsub", "pushunsub", "logout"];
 // Gmail-SMTP: Netlify env GMAIL_USER (deine Gmail-Adresse) + GMAIL_APP_PASS (16-stelliges App-Passwort)
 const mailOn = () => !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASS);
@@ -524,7 +526,7 @@ export default async (req) => {
     if (tu.pst !== "dnd" && !(tu.blocked || []).includes(me)) await sendPush(st, to, { k: "call", u: me, ch: b.room, tx: "ruft dich an …", i: "ring" + Date.now(), t: Date.now() });
     return J({ ok: 1 });
   }
-  if (a === "rings") { const r = await get("r/" + me, null); return J(r && Date.now() - r.t < 30000 ? r : {}); }
+  if (a === "rings") { const r = await get("r/" + me, null); return J(r && Date.now() - r.t < RING_MS ? r : {}); }
   if (a === "unring") { await st.delete("r/" + me); return J({ ok: 1 }); }
   if (a === "ringx") { const to = clean(b.to), r = await get("r/" + to, null); if (r && r.from === me) await st.delete("r/" + to); return J({ ok: 1 }); }
   if (a === "vlist") {
@@ -547,9 +549,16 @@ export default async (req) => {
     }
     const inbox = [];
     for (const x of (await st.list({ prefix: `g/${room}/${me}/` })).blobs.sort((p, q) => (p.key < q.key ? -1 : 1))) { inbox.push(await get(x.key)); await st.delete(x.key); }
-    return J({ users, inbox });
+    let kick = 0;
+    if (room.startsWith("dm:") && !room.startsWith("dm:g") && users.length < 2) {
+      const al = await get("al/" + room, null);
+      if (!al || now - (al.l || 0) > 15000) await put("al/" + room, { s: now, l: now });
+      else if (now - al.s >= ALONE_MS) { await st.delete(`v/${room}/${me}`); await st.delete("al/" + room); kick = 1; }
+      else if (now - al.l > 5000) await put("al/" + room, { s: al.s, l: now });
+    }
+    return J({ users: kick ? [] : users, inbox, kick });
   }
-  if (a === "vleave") { await st.delete(`v/${b.room}/${me}`); return J({ ok: 1 }); }
+  if (a === "vleave") { await st.delete(`v/${b.room}/${me}`); if (String(b.room).startsWith("dm:")) await st.delete("al/" + String(b.room)); return J({ ok: 1 }); }
   if (a === "mod") {
     const s = await get("s/" + b.srv);
     if (!s) return J({ error: "nf" }, 404);
@@ -636,7 +645,7 @@ export default async (req) => {
   }
   if (a === "inbox") {
     const since = +q.get("since") || 0;
-    const rg = await get("r/" + me, null), ring = rg && Date.now() - rg.t < 30000 ? rg : null, dnd = U.pst === "dnd";
+    const rg = await get("r/" + me, null), ring = rg && Date.now() - rg.t < RING_MS ? rg : null, dnd = U.pst === "dnd";
     if (!since) return J({ now: Date.now(), items: [], ring, dnd, fin: U.fin || [] });
     return J({ now: Date.now(), items: (await get("n/" + me, [])).filter((x) => x.t >= since), ring, dnd, fin: U.fin || [] });
   }

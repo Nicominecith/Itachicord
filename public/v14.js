@@ -60,7 +60,7 @@
   };
 
   /* ---------- 3) Anrufe: Freizeichen beim Anrufer, Klingeln + Titel beim Angerufenen ---------- */
-  var RB = null;
+  var RB = null, RING_MAX = 120000;
   function volOk() { return localStorage.sfx != "0" && !(typeof ME != "undefined" && ME && ME.pst == "dnd") && (typeof VOL != "function" || VOL() > 0); }
   function beep() {
     try {
@@ -72,15 +72,34 @@
       });
     } catch (e) {}
   }
-  function startRB() { if (RB) return; V.ringT = Date.now(); if (volOk()) { beep(); RB = setInterval(function () { if (volOk()) beep(); }, 3000); } else RB = 1; }
-  function stopRB() { if (RB && RB !== 1) clearInterval(RB); RB = null; }
+  /* Anrufer hört den Anrufton (sounds/call.mp3) in Schleife, bis der andere beitritt oder 2 Minuten um sind. Nur in privaten 1:1-Anrufen. */
+  function privRing() { return V && V.ring && V.room && /^dm:/.test(V.room) && !/^dm:g/.test(V.room); }
+  function startRB() {
+    if (RB) return; V.ringT = Date.now();
+    if (!volOk()) { RB = 1; return; }
+    var s = null; try { s = sfx("ring", 1); } catch (e) {}
+    if (s) { RB = { s: s }; } else { beep(); RB = { i: setInterval(function () { if (volOk()) beep(); }, 3000) }; }
+  }
+  function stopRB() { if (RB && RB !== 1) { try { RB.s && RB.s.stop(); } catch (e) {} if (RB.i) clearInterval(RB.i); } RB = null; }
   setInterval(function () {
-    if (typeof V == "undefined" || !V || !V.ring || V.ringDone) { if (RB && !(V && V.ring && !V.ringDone)) stopRB(); return; }
+    if (!privRing() || V.ringDone) { if (RB && !(privRing() && !V.ringDone)) stopRB(); return; }
     var joined = V.pcs && Object.keys(V.pcs).length > 0;
     if (joined) { stopRB(); V.ringDone = 1; try { sfx("join"); } catch (e) {} }
     else if (!RB) startRB();
-    else if (Date.now() - V.ringT > 45000) { stopRB(); V.ringDone = 1; say("📵 " + V.ring + " hat nicht geantwortet"); }
+    else if (Date.now() - V.ringT > RING_MAX) { stopRB(); V.ringDone = 1; try { api("ringx", { to: V.ring }); } catch (e) {} say("📵 " + V.ring + " hat nicht abgenommen – du bist allein im Anruf"); }
   }, 400);
+  /* Netzwerkpolizei: nur privater 1:1-Anruf, 15 Min. allein -> raus (Server prüft zusätzlich). Gruppen und Server-Kanäle sind ausgenommen. */
+  window.v15Kick = function () {
+    try { if (V) window.vleave(); } catch (e) {}
+    try { modal('<div style="text-align:center"><div style="font-size:54px">🚓</div><h3>Netzwerkpolizei</h3><p class="dm">Du warst 15 Minuten allein im privaten Anruf und wurdest daher entfernt.</p><button class="pri" onclick="document.getElementById(\'modal\').classList.add(\'hide\')">Verstanden</button></div>'); } catch (e) { say("🚓 Netzwerkpolizei: 15 Minuten allein im Anruf – du wurdest entfernt"); }
+  };
+  setInterval(function () {
+    if (typeof V == "undefined" || !V || !V.room || !/^dm:/.test(V.room) || /^dm:g/.test(V.room)) return;
+    var alone = !V.pcs || Object.keys(V.pcs).length == 0;
+    if (!alone) { V.aloneSince = 0; return; }
+    if (!V.aloneSince) V.aloneSince = Date.now();
+    else if (Date.now() - V.aloneSince >= 15 * 60000) window.v15Kick();
+  }, 1000);
   /* Angerufener: Titel blinkt + Vibration, solange das Klingel-Fenster offen ist */
   var T0 = document.title, tt = null;
   setInterval(function () {
