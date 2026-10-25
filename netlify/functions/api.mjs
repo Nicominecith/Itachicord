@@ -13,7 +13,7 @@ const wo = (l, x) => (l || []).filter((y) => y !== x);
 // Feste 18-stellige Nutzer-ID (wie bei Discord) – wird aus Name + Erstellzeit berechnet, braucht keine Migration
 const uidOf = (u) => String(100000000000000000n + (BigInt("0x" + crypto.createHash("sha256").update("itachicord:" + u.name + ":" + (u.created || 0)).digest("hex").slice(0, 14)) % 800000000000000000n));
 // Diese Aktionen darf auch ein gebannter Nutzer (nur lesen)
-const READONLY = ["me", "users", "msgs", "inbox", "rels", "discover", "dl", "export", "vlist", "unring", "vleave", "adm_me", "pushkey", "pushsub", "pushunsub"];
+const READONLY = ["me", "users", "msgs", "inbox", "rels", "discover", "dl", "export", "vlist", "unring", "vleave", "adm_me", "pushkey", "pushsub", "pushunsub", "logout"];
 // Gmail-SMTP: Netlify env GMAIL_USER (deine Gmail-Adresse) + GMAIL_APP_PASS (16-stelliges App-Passwort)
 const mailOn = () => !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASS);
 const mail = async (to, subject, text) => {
@@ -28,16 +28,43 @@ const vapid = async (st) => {
   if (!k) { const w = (await import("web-push")).default; k = w.generateVAPIDKeys(); await st.setJSON("cfg/vapid", k); }
   return k;
 };
+const NSK = { dm: "dm", mention: "mention", reply: "reply", everyone: "everyone", here: "everyone", friend: "friend", call: "call" };
+const quietNow = (ns) => {
+  try {
+    const q = ns && ns.quiet; if (!q || !q.on) return false;
+    const loc = new Date(Date.now() - (+ns.tz || 0) * 60000), m = loc.getUTCHours() * 60 + loc.getUTCMinutes();
+    const p = (x) => { const [h, mi] = String(x || "0:0").split(":"); return (+h || 0) * 60 + (+mi || 0); };
+    const f = p(q.from), t = p(q.to);
+    return f === t ? false : f < t ? m >= f && m < t : m >= f || m < t;
+  } catch { return false; }
+};
+const cleanNs = (n0) => {
+  const o = n0 && typeof n0 === "object" ? n0 : {}, r = {};
+  for (const k of ["dm", "mention", "reply", "everyone", "friend", "call", "preview"]) if (o[k] === false) r[k] = false;
+  r.tz = Math.max(-840, Math.min(840, Math.round(+o.tz || 0)));
+  const tm = (x, d) => (/^\d{1,2}:\d{2}$/.test(String(x || "")) ? String(x) : d);
+  if (o.quiet && o.quiet.on) r.quiet = { on: true, from: tm(o.quiet.from, "22:00"), to: tm(o.quiet.to, "07:00"), calls: o.quiet.calls !== false };
+  return r;
+};
 const sendPush = async (st, user, payload) => {
   try {
     let subs = (await st.get("ps/" + user, { type: "json" })) || [];
-    const srvId = String(payload.ch || "").split("/")[0];
+    const srvId = String(payload.ch || "").split("/")[0], k = NSK[payload.k] || "dm";
     subs = subs.filter((x) => !(payload.ch && !String(payload.ch).startsWith("dm:") && (x.mu || []).includes(srvId)));
+    // Einstellungen des jeweiligen Geräts: Art der Benachrichtigung, Ruhezeiten
+    subs = subs.filter((x) => {
+      const ns = x.ns || {};
+      if (ns[k] === false) return false;
+      if (quietNow(ns) && !(payload.k === "call" && ns.quiet?.calls !== false)) return false;
+      return true;
+    });
     if (!subs.length) return;
-    const w = (await import("web-push")).default, k = await vapid(st);
-    w.setVapidDetails("https://pulsecords.netlify.app", k.publicKey, k.privateKey);
-    const body = JSON.stringify(payload), dead = [];
+    const w = (await import("web-push")).default, vk = await vapid(st);
+    w.setVapidDetails("https://pulsecords.netlify.app", vk.publicKey, vk.privateKey);
+    const dead = [];
     await Promise.all(subs.map(async (x) => {
+      const hide = x.ns?.preview === false && payload.k !== "call" && payload.k !== "friend";
+      const body = JSON.stringify(hide ? { ...payload, tx: "Neue Nachricht" } : payload);
       try { await w.sendNotification({ endpoint: x.endpoint, keys: x.keys }, body, { TTL: payload.k === "call" ? 30 : 3600, urgency: "high" }); }
       catch (e) { if (e.statusCode === 404 || e.statusCode === 410) dead.push(x.endpoint); }
     }));
@@ -167,6 +194,7 @@ export default async (req) => {
     let d = null;
     if (t === "av" || t === "bn") { const u = await get("u/" + clean(i), null); d = u && (t === "av" ? u.avatar : u.banner); }
     else if (t === "si") d = (await get("s/" + i, null))?.icon;
+    else if (t === "sb") d = (await get("s/" + i, null))?.banner;
     else if (t === "gi") d = (await get("g/" + i, null))?.icon;
     else if (t === "pa" || t === "pb") { const p = (await get("s/" + i, null))?.prof?.[n]; d = p && (t === "pa" ? p.avatar : p.banner); }
     const m = /^data:([\w/+.-]+);base64,([\s\S]*)$/.exec(d || "");
@@ -243,7 +271,7 @@ export default async (req) => {
   };
   const pub = (u) => ({ name: u.name, uid: uidOf(u), status: u.status, activity: u.activity, pron: u.pron, dstyle: u.dstyle, links: u.links, conn: u.conn, created: u.created, dname: u.dname || "", ptheme: u.ptheme || "", verified: !!u.verified, bio: u.bio, color: (u.color || "").toLowerCase() === "#c8102e" ? "#7b6cff" : u.color, hasav: !!u.avatar, avvid: !!u.avatar?.startsWith("data:video"), hasbn: !!u.banner, imv: u.imv || 0, deco: u.deco || "", pk: u.pk || "" });
   const srvPub = (s) => {
-    const o = { ...s, icon: undefined, hasicon: !!s.icon };
+    const o = { ...s, icon: undefined, hasicon: !!s.icon, banner: undefined, hasbanner: !!s.banner };
     if (s.prof) { o.prof = {}; for (const [k, p] of Object.entries(s.prof)) o.prof[k] = { name: p.name, bio: p.bio, hasav: !!p.avatar, hasbn: !!p.banner, avvid: !!p.avatar?.startsWith("data:video"), v: p.v || 0 }; }
     return o;
   };
@@ -284,7 +312,7 @@ export default async (req) => {
       if ((s.lock || 0) > nw) return J({ error: "Server im Raid-Schutz (gesperrt)" }, 403);
       if (s.minage && nw - (U.created || nw) < s.minage * 60000) return J({ error: `Verifizierung: Konto muss ${s.minage} Min. alt sein` }, 403);
       if (s.raid && !s.members.includes(me)) { s.joins = (s.joins || []).filter((t) => nw - t < 60000); s.joins.push(nw); if (s.joins.length > 5) { s.lock = nw + 600000; await put("s/" + s.id, s); return J({ error: "Raid-Schutz aktiviert" }, 403); } }
-      if (!s.members.includes(me)) s.members.push(me);
+      if (!s.members.includes(me)) { s.members.push(me); const dk = new Date().toISOString().slice(0, 10), stj = (s.stats ||= { d: {}, c: {} }); (stj.j ||= {})[dk] = (stj.j[dk] || 0) + 1; }
     }
     await put("s/" + s.id, s);
     if (!U.servers.includes(s.id)) U.servers.push(s.id);
@@ -309,6 +337,7 @@ export default async (req) => {
     if (s.owner === me) return J({ error: "Besitzer können nicht gehen – übertrage den Server oder lösche ihn" }, 400);
     s.members = wo(s.members, me); s.mods = wo(s.mods, me); if (s.roles) delete s.roles[me];
     (s.log ||= []).push({ t: Date.now(), u: me, x: "hat den Server verlassen" });
+    { const dk = new Date().toISOString().slice(0, 10), stl = (s.stats ||= { d: {}, c: {} }); (stl.l ||= {})[dk] = (stl.l[dk] || 0) + 1; }
     U.servers = wo(U.servers, s.id);
     await Promise.all([put("s/" + s.id, s), put("u/" + me, U)]);
     return J({ ok: 1 });
@@ -427,7 +456,7 @@ export default async (req) => {
   if (a === "export") return J({ ...U, h: undefined, salt: undefined, tfa: undefined, tmp: undefined });
   if (a === "discover") {
     const all = await Promise.all((await st.list({ prefix: "s/" })).blobs.map((x) => get(x.key, null)));
-    return J(all.filter((sv) => sv && sv.public).map((sv) => ({ id: sv.id, name: sv.name, n: sv.members.length, icon: sv.icon ? "/api?a=img&t=si&i=" + sv.id + "&v=" + (sv.iv || 0) : "" })));
+    return J(all.filter((sv) => sv && sv.public).map((sv) => ({ id: sv.id, name: sv.name, desc: sv.desc || "", n: sv.members.length, icon: sv.icon ? "/api?a=img&t=si&i=" + sv.id + "&v=" + (sv.iv || 0) : "", banner: sv.banner ? "/api?a=img&t=sb&i=" + sv.id + "&v=" + (sv.bv || 0) : "" })).sort((x, y) => y.n - x.n));
   }
   if (a === "onb") {
     const sv = await get("s/" + b.srv, null);
@@ -453,13 +482,6 @@ export default async (req) => {
     (sv.prof ||= {})[me] = { name: String(b.name || "").slice(0, 32), bio: String(b.bio || "").slice(0, 200), avatar: b.avatar || "", banner: b.banner || "", v: Date.now() };
     await put("s/" + sv.id, sv);
     return J({ ok: 1 });
-  }
-  if (a === "boost") {
-    const sv = await get("s/" + b.srv, null);
-    if (!sv || !sv.members.includes(me)) return J({ error: "nf" }, 404);
-    sv.boosts = (sv.boosts || 0) + 1;
-    await put("s/" + sv.id, sv);
-    return J({ boosts: sv.boosts });
   }
   if (a === "mkhook") {
     const sv = !b.ch.startsWith("dm:") && (await get("s/" + b.ch.split("/")[0], null));
@@ -529,6 +551,8 @@ export default async (req) => {
     else if (op === "mod") { if (t === s.owner || !s.members.includes(t)) return J({ error: "Ungültiges Ziel" }, 400); s.mods = (s.mods || []).includes(t) ? wo(s.mods, t) : [...(s.mods || []), t]; lg("mod " + t); }
     else if (op === "transfer") { if (t === me || !s.members.includes(t)) return J({ error: "Ungültiges Ziel" }, 400); s.owner = t; s.mods = wo(s.mods, t); lg("besitz an " + t + " übertragen"); }
     else if (op === "rename") { const n = String(v || "").trim().slice(0, 40); if (!n) return J({ error: "Name fehlt" }, 400); s.name = n; lg("server umbenannt: " + n); }
+    else if (op === "desc") { s.desc = String(v || "").trim().slice(0, 200); lg("server-beschreibung"); }
+    else if (op === "banner") { if (!b.data) { delete s.banner; } else { if (!/^data:image\//.test(b.data) || b.data.length > 300000) return J({ error: "Banner zu groß (max ~200 KB)" }, 400); s.banner = b.data; } s.bv = Date.now(); lg("server-banner"); }
     else if (op === "icon") { if (!b.data) { delete s.icon; } else { if (!/^data:image\//.test(b.data) || b.data.length > 150000) return J({ error: "Icon zu groß (max ~100 KB)" }, 400); s.icon = b.data; } s.iv = Date.now(); lg("server-icon"); }
     else if (op === "slow") { (s.slow ||= {})[clean(b.ch)] = Math.min(21600, +v || 0); lg("slowmode " + b.ch + " " + v + "s"); }
     else if (op === "words") { s.words = String(v).toLowerCase().split(",").map((x) => x.trim()).filter(Boolean); lg("automod aktualisiert"); }
@@ -589,12 +613,13 @@ export default async (req) => {
     if (!since) return J({ now: Date.now(), items: [], ring, dnd, fin: U.fin || [] });
     return J({ now: Date.now(), items: (await get("n/" + me, [])).filter((x) => x.t >= since), ring, dnd, fin: U.fin || [] });
   }
+  if (a === "logout") { await st.delete("t/" + (req.headers.get("x-token") || "x")); return J({ ok: 1 }); }
   if (a === "pushkey") return J({ key: (await vapid(st)).publicKey });
   if (a === "pushsub") {
     const sub = b.sub;
     if (!sub || typeof sub.endpoint !== "string" || !sub.endpoint.startsWith("https://") || !sub.keys?.p256dh || !sub.keys?.auth) return J({ error: "Ungültiges Abo" }, 400);
     const list = ((await get("ps/" + me, [])) || []).filter((x) => x.endpoint !== sub.endpoint);
-    list.push({ endpoint: sub.endpoint, keys: { p256dh: String(sub.keys.p256dh), auth: String(sub.keys.auth) }, mu: (Array.isArray(b.mu) ? b.mu : []).slice(0, 100).map((x) => String(x).slice(0, 40)), t: Date.now() });
+    list.push({ endpoint: sub.endpoint, keys: { p256dh: String(sub.keys.p256dh), auth: String(sub.keys.auth) }, mu: (Array.isArray(b.mu) ? b.mu : []).slice(0, 100).map((x) => String(x).slice(0, 40)), ns: cleanNs(b.ns), t: Date.now() });
     await put("ps/" + me, list.slice(-5));
     return J({ ok: 1 });
   }
@@ -635,7 +660,17 @@ export default async (req) => {
       if (poll) msg.poll = poll;
       m.push(msg);
       const sv2 = await get("s/" + ch.split("/")[0], null);
-      if (sv2 && !ch.startsWith("dm:")) { const dk = new Date().toISOString().slice(0, 10), c2 = ch.split("/")[1].split("~")[0], stt = (sv2.stats ||= { d: {}, c: {} }); stt.d[dk] = (stt.d[dk] || 0) + 1; stt.c[c2] = (stt.c[c2] || 0) + 1; await put("s/" + sv2.id, sv2); }
+      if (sv2 && !ch.startsWith("dm:")) {
+        const nd = new Date(), dk = nd.toISOString().slice(0, 10), c2 = ch.split("/")[1].split("~")[0], stt = (sv2.stats ||= { d: {}, c: {} });
+        stt.d[dk] = (stt.d[dk] || 0) + 1; stt.c[c2] = (stt.c[c2] || 0) + 1;
+        (stt.h ||= Array(24).fill(0))[nd.getUTCHours()]++;
+        (stt.u ||= {}); if (stt.u[me] || Object.keys(stt.u).length < 500) stt.u[me] = (stt.u[me] || 0) + 1;
+        if (msg.file) stt.f = (stt.f || 0) + 1;
+        const al = ((stt.a ||= {})[dk] ||= []); if (!al.includes(me) && al.length < 300) al.push(me);
+        const cut = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
+        for (const g of ["d", "a", "j", "l"]) if (stt[g]) for (const kk of Object.keys(stt[g])) if (kk < cut) delete stt[g][kk];
+        await put("s/" + sv2.id, sv2);
+      }
       const cm = text.startsWith("/") && sv2?.cmds?.[text.slice(1).split(" ")[0]];
       if (cm) m.push({ id: id(), u: "🤖 Bot", t: Date.now(), text: cm, reply: null, file: null, react: {}, pin: false });
       // --- Benachrichtigungen: DM, @name, @everyone/@here, Antwort -> Inbox der Empfänger (Popups im Client) ---

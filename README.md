@@ -109,3 +109,29 @@ Dateien: `public/v7.js`, `public/v7.css` (+ kleine Hooks in `index.html`, `v3.js
 - *PC:* **Alt + ↑/↓** Kanal/Chat wechseln, **Strg + Alt + ↑/↓** Server wechseln, **Strg + Umschalt + M** Mitgliederliste, **Strg + /** Übersicht. Feste Mitgliederspalte rechts (ab 1100 px, 👥 schaltet sie ein/aus).
 - *Tablet:* Server + Kanäle als Schublade, Mitglieder als Schublade von rechts.
 - *Handy:* Wischen mit Finger-Tracking – nach rechts = Server & Chats, nach links = Mitglieder (auch am Rand zum Schließen). Neue Tab-Leiste: Server · Freunde · Suche · Du. Die alten Wisch-Handler wurden entfernt.
+
+## Neu (v12): Einstellungs-Hub, Profile wechseln, Startanimation, Benachrichtigungs-Optionen, Insights
+Dateien: `public/v12.js`, `public/v12.css` (+ kleine Änderungen in `index.html`, `v3.js`, `v6.js`, `sw.js`, `netlify/functions/api.mjs`). Service-Worker-Cache heißt jetzt `pulsecord-v14` – nach dem Deploy einmal hart neu laden.
+
+**Einstellungs-Hub (Profil → öffnet jetzt ein Vollbild-Menü mit Bereichen)**
+- *Mein Konto:* Vorschau, Anzeigename, Status, Aktivität, Pronomen, Über mich, Farbe, Namensstil, Avatar/Banner/Beitritts-Sound, Dekoration, Profil-Theme, Verknüpfungen, ein Speichern-Knopf.
+- *Profile wechseln:* mehrere Konten pro Gerät (Wechseln, Entfernen, „Weiteres Konto hinzufügen“). Schneller Wechsler über **⇄** neben deinem Namen unten links. Auf der Login-Seite erscheinen gespeicherte Konten als „Weiter als …“. Beim Wechsel wird die Push-Anmeldung des alten Kontos entfernt, das neue registriert sich selbst.
+- *Benachrichtigungen:* Arten (DMs, @Erwähnungen, Antworten, @everyone, Freundschaftsanfragen, Anrufe), Popups an/aus, Position (Desktop), Dauer, Textvorschau an/aus, System-Benachrichtigung im Hintergrund, Tab-Zähler, Ton, Lautstärke, Vibration, **Ruhezeiten** (inkl. „Anrufe durchlassen“), Server einzeln stummschalten, Test-Knöpfe. Die Auswahl wird mit dem Push-Abo an den Server geschickt (`a=pushsub`, Feld `ns`) – Push bei geschlossener App hält sich daran.
+- *Darstellung:* Modus, Akzent, Theme, App-Icon, Schrift, Sättigung, Kontrast, **Kompakt**, **Bewegung reduzieren**, Streamer-Modus, Hintergrundbild, **Startanimation** (Voll / Schlicht / Keine, mit Vorschau).
+- *Sprache & Ton*, *Sicherheit & Datenschutz* (2FA, E-Mail, Schlüssel, Status, Export), *Gerät & App* (Overlay, Management, Cache leeren, Abmelden).
+- **Abmelden** meldet jetzt nur noch das aktuelle Konto ab (neu: `a=logout` macht den Token serverseitig ungültig). „Alle Konten abmelden & Gerätedaten löschen“ ersetzt das frühere `localStorage.clear()`.
+
+**Startanimation:** Logo mit pulsierenden Ringen, Glanz-Schriftzug, Statusmeldungen („Verbinde …“, „Lade Server …“) und weichem Ausblenden, während die Oberfläche einfliegt. Respektiert „Bewegung reduzieren“.
+
+**Server-Insights (Dashboard):** Zeitraum 7/14/30 Tage, Kennzahlen mit Trend, Nachrichten pro Tag, Aktivität nach Uhrzeit (lokale Zeit), Top-Kanäle (mit Namen), aktivste Mitglieder, aktive Nutzer, Beitritte/Austritte, Online/Rollen. Neue Messwerte werden ab dem Deploy erfasst (Uhrzeiten, Mitglieder, aktive Nutzer, Beitritte/Austritte, Dateien); ältere Tages- und Kanalsummen bleiben erhalten. In den Servereinstellungen → Übersicht gibt es zusätzlich einen Schalter für deine Benachrichtigungen dieses Servers.
+
+**Grenze:** Der native Android-Hintergrunddienst (`pulsecord-android-src.zip`) kennt die neuen Benachrichtigungs-Optionen noch nicht; für ihn gelten weiter nur die stummgeschalteten Server und „Nicht stören“.
+
+## Neu (v14): Sprachchat im Discord-Stil, Bildschirmfreigabe repariert
+Dateien: `public/v13.js`, `public/v13.css`, Icons in `public/icons/vc/` (aus den Discord-Assets).
+- **Design:** Kachel-Raster mit farbigem Hintergrund, Avatar in der Mitte, Name unten links, Stumm-/Kopfhörer-Symbol unten rechts, grüner Rahmen beim Sprechen. Auf dem Desktop liegt der Anruf links, der Text-Chat des Kanals rechts. Auf dem Handy Vollbild (Minimieren-Knopf zeigt den Chat), bei einem anderen offenen Kanal ein kleines Fenster.
+- **Steuerleiste:** Mikrofon, Kopfhörer (Deafen), Kamera, Bildschirm teilen, ⋯ (Push-to-Talk, Gemeinsam schauen, Hand heben, Soundboard), Auflegen.
+- **Mikrofon-Symbole:** vorher zeigten 🎤 (Stumm) und 🎙 (Push-to-Talk) dasselbe Icon. Jetzt: Mikrofon / Mikrofon durchgestrichen, Kopfhörer, und Push-to-Talk steht im ⋯-Menü. Der Knopf „Sprache“ in der Kopfzeile ist ein Telefon.
+- **Bildschirmfreigabe:** Der Stream erscheint als eigene Kachel mit „Stream ansehen“ (Klick = große Ansicht, Doppelklick/⛶ = Vollbild). Wer nach dem Start beitritt, sieht den Stream ebenfalls. Fehler werden angezeigt statt verschluckt. Die Signalisierung läuft nicht mehr überlappend, schickt höchstens 60 Nachrichten pro Anfrage und wiederholt bei Netzfehlern.
+- **Desktop-App:** `desktop/main.js` hat jetzt einen Handler für `getDisplayMedia` (Auswahl Bildschirm/Fenster). Ohne ihn schlägt die Freigabe in Electron still fehl.
+- Service-Worker-Cache: `pulsecord-v15` (einmal hart neu laden).

@@ -34,7 +34,8 @@ function swipe(el){
     if(Math.abs(dx)>80||dy<-40){el.dead=1;el.style.transform=`translate(${dx>80?"120%":dx<-80?"-120%":"0"},${dy<-40?"-130%":"0"})`;el.style.opacity=0;setTimeout(()=>el.remove(),260)}
     else{el.style.transform="";el.style.opacity=""}});
 }
-function ntfPop(x){
+function ntfPop(x,P){
+  if(P&&P.prev===false&&x.k!="friend")x=Object.assign({},x,{tx:"Neue Nachricht"});
   const b=ntfBox();
   while(b.children.length>=4)kill(b.firstElementChild,1);
   const el=document.createElement("div");el.className="np k-"+(x.k||"dm");el.setAttribute("role","alert");
@@ -48,12 +49,14 @@ function ntfPop(x){
 window.ntfPop=ntfPop;
 
 /* ---------- Systembenachrichtigung (App im Hintergrund) ---------- */
-function ntfNative(x){
+function ntfNative(x,P){
+  if(P&&P.prev===false&&x.k!="call"&&x.k!="friend")x=Object.assign({},x,{tx:"Neue Nachricht"});
   try{
     if(window.AndroidApp&&window.AndroidApp.notify){if(AndroidApp.svcActive&&AndroidApp.svcActive())return;const t0=x.k=="call"?"📞 Anruf von "+x.u:x.s?`${x.u} (#${x.c}, ${x.s})`:x.u;AndroidApp.notify(t0,(LBL[x.k]?LBL[x.k]+": ":"")+(x.tx||""),x.ch||"",x.k=="call"?1:0);return}
     if(typeof Notification=="undefined"||Notification.permission!="granted")return;
     const u=U[x.u]||{},title=x.k=="call"?"📞 Anruf von "+x.u:x.s?`${x.u} (#${x.c}, ${x.s})`:x.u;
-    const o={body:(LBL[x.k]?LBL[x.k]+": ":"")+(x.tx||""),icon:u.avatar&&!u.avvid?u.avatar:"/icon-192.png",badge:"/icon-192.png",tag:x.k=="call"?"call":(x.ch||"pulsecord"),renotify:true,data:{ch:x.ch,k:x.k},vibrate:x.k=="call"?[500,250,500,250,500,250,500]:[120,60,120],requireInteraction:x.k=="call"};if(x.k=="call")o.actions=[{action:"accept",title:"✅ Annehmen"},{action:"decline",title:"❌ Ablehnen"}];
+    const o={body:(LBL[x.k]?LBL[x.k]+": ":"")+(x.tx||""),icon:u.avatar&&!u.avvid?u.avatar:"/icon-192.png",badge:"/icon-192.png",tag:x.k=="call"?"call":(x.ch||"pulsecord"),renotify:true,data:{ch:x.ch,k:x.k},vibrate:x.k=="call"?[500,250,500,250,500,250,500]:[120,60,120],requireInteraction:x.k=="call"};if(window.pcNtf&&pcNtf.cfg().vib===false)delete o.vibrate;
+    if(x.k=="call")o.actions=[{action:"accept",title:"✅ Annehmen"},{action:"decline",title:"❌ Ablehnen"}];
     const fb=()=>{try{const n=new Notification(title,o);n.onclick=()=>{window.focus();go(x);n.close()}}catch(e){}};
     if("serviceWorker"in navigator)navigator.serviceWorker.ready.then(r=>r.showNotification(title,o)).catch(fb);else fb();
   }catch(e){}
@@ -65,7 +68,7 @@ addEventListener("pointerdown",()=>{try{if(Notification.permission=="default")No
 /* ---------- Ungelesen-Zähler (Titel + rote Badges an Server/DMs/Kanälen) ---------- */
 const UN={};
 const tot=()=>Object.values(UN).reduce((a,b)=>a+b,0);
-const ttl=()=>{const n=tot();document.title=(n?`(${n}) `:"")+"Pulsecord"};
+const ttl=()=>{const n=tot();document.title=(n&&(!window.pcNtf||pcNtf.cfg().badge!==false)?`(${n}) `:"")+"Pulsecord"};
 function setBadge(e,n,cl){
   let b=e.querySelector(":scope>i.ub");
   if(!n){if(b)b.remove();return}
@@ -93,10 +96,11 @@ function onItem(x){
   if(!ME||ME.pst=="dnd")return;
   if((ME.blocked||[]).includes(x.u))return;
   if(!x.ch.startsWith("dm:")&&localStorage["mu"+x.ch.split("/")[0]])return;
+  const P=window.pcNtf?pcNtf.plan(x):{pop:1,snd:1,nat:1,prev:true};   // Einstellungen (v12)
   const here=x.ch==ch,vis=!document.hidden;
   if(here&&vis)return;                         // im offenen Chat: kein Popup (Ton macht der Chat selbst)
-  if(!here){UN[x.ch]=(UN[x.ch]||0)+1;ttl();dec();sfx("msg")}
-  if(vis)ntfPop(x);else ntfNative(x);
+  if(!here){UN[x.ch]=(UN[x.ch]||0)+1;ttl();dec();if(P.snd)sfx("msg")}
+  if(vis){if(P.pop)ntfPop(x,P)}else if(P.nat)ntfNative(x,P);
 }
 async function inboxPoll(){
   if(!T||!ME||busy)return;busy=1;

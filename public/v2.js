@@ -1,7 +1,7 @@
 /* ===== Pulsecord v2: Freundschaftsanfragen, Servermenü, Servereinstellungen, schnelleres Laden ===== */
 const IMG=(t,i,v,n)=>"/api?a=img&t="+t+"&i="+encodeURIComponent(i)+"&v="+(v||0)+(n?"&n="+encodeURIComponent(n):"");
 const nu=u=>{u.avatar=u.hasav?IMG("av",u.name,u.imv):"";u.banner=u.hasbn?IMG("bn",u.name,u.imv):"";return u};
-const ns=s=>{s.icon=s.hasicon?IMG("si",s.id,s.iv):"";for(const n in s.prof||{}){const p=s.prof[n];p.avatar=p.hasav?IMG("pa",s.id,p.v,n):"";p.banner=p.hasbn?IMG("pb",s.id,p.v,n):""}return s};
+const ns=s=>{s.icon=s.hasicon?IMG("si",s.id,s.iv):"";for(const n in s.prof||{}){const p=s.prof[n];p.avatar=p.hasav?IMG("pa",s.id,p.v,n):"";p.banner=p.hasbn?IMG("pb",s.id,p.v,n):""}s.banner=s.hasbanner?IMG("sb",s.id,s.bv):"";return s};
 function setServers(l){S=l.map(ns);EMO={};SND={};S.forEach(v=>{Object.assign(EMO,v.emoji||{});Object.assign(SND,v.sounds||{})})}
 const isOwn=()=>srv&&srv.owner==ME.name,isMod=()=>isOwn()||(srv.mods||[]).includes(ME.name);
 const SMU=()=>srv&&localStorage["mu"+srv.id];
@@ -178,7 +178,6 @@ function smenu(e){
   +(m?sep:"")
   +it("🪪","Server-Profil bearbeiten","sprofUI()")
   +it(mu?"🔕":"🔔",mu?"Stummschaltung aufheben":"Server stummschalten","tmute()")
-  +it("🚀","Server boosten","boost()")
   +it("📊","Server-Insights","insights()")
   +sep+(o?it("🗑","Server löschen","ssets('del')","dng"):it("🚪","Server verlassen","leaveSrv()","dng"));
   $("#side").append(d);const h=$(".shd");if(h)h.classList.add("open");
@@ -192,7 +191,6 @@ async function leaveSrv(){
   const r=await api("leave",{srv:srv.id});if(r.error)return toast(r.error);
   ssclose();srv=null;ch=null;await refresh();showHome();toast("Du hast den Server verlassen");
 }
-async function boost(){const r=await api("boost",{srv:srv.id});if(r.error)return toast(r.error);srv.boosts=r.boosts;toast("🚀 Danke fürs Boosten!");srvUi();if($("#sc"))setSec(SEC)}
 
 /* ---------- Server erstellen / beitreten / Kanäle / Kategorien ---------- */
 function addSrv(){modal(`<h3>Server hinzufügen</h3><label>Eigenen Server erstellen<div class="cp"><input id="sn" placeholder="Servername" maxlength="40" onkeydown="if(event.key=='Enter')mk()"><button class="pri" onclick="mk()">Erstellen</button></div></label><label>Einem Server beitreten<div class="cp"><input id="sj" placeholder="Einladungslink oder ID" onkeydown="if(event.key=='Enter')jn()"><button onclick="jn()">Beitreten</button></div></label><button onclick="disc()">🌐 Öffentliche Server entdecken</button><div id="dc"></div>`)}
@@ -218,7 +216,7 @@ const SS=()=>{const o=isOwn();return[
   ["Gemeinschaft",[["mem","👥","Mitglieder",1],["inv","🔗","Einladungen",1],["bans","🔨","Bans & Timeouts",1],["onb","👋","Onboarding",o]]],
   ["Inhalte",[["emo","😀","Emojis",o],["snd","🔊","Soundboard",o],["evt","📅","Events",o],["cmd","⚡","Befehle",o],["int","🪝","Integrationen",o]]],
   ["Sicherheit",[["sec","🛡","Moderation & AutoMod",o],["log","📜","Audit-Log",1]]],
-  ["Mehr",[["ins","📊","Insights",1],["boo","🚀","Boost",1],["del","⚠️",o?"Server löschen":"Server verlassen",1]]]
+  ["Mehr",[["ins","📊","Insights",1],["del","⚠️",o?"Server löschen":"Server verlassen",1]]]
 ]};
 function ssets(sec){
   if(!srv||!isMod())return;smx();let d=$("#sset");if(!d){d=document.createElement("div");d.id="sset";d.className="sset";document.body.append(d)}
@@ -238,6 +236,10 @@ function setSec(k){
 async function smod(op,o={},msg){
   const r=await api("mod",{srv:srv.id,op,...o});if(r.error){toast(r.error);sfx("err");return false}
   upd(r);if(msg)toast(msg);if($("#sc"))setSec(SEC);return true;
+}
+async function sbanner(f){
+  if(!f)return;
+  try{const u=await rd(f),i=new Image;i.src=u;await i.decode();const c=document.createElement("canvas");c.width=960;c.height=300;const x=c.getContext("2d"),k=Math.max(960/i.width,300/i.height);x.drawImage(i,(960-i.width*k)/2,(300-i.height*k)/2,i.width*k,i.height*k);let o=c.toDataURL("image/webp",.8);if(!o.startsWith("data:image/webp"))o=c.toDataURL("image/jpeg",.8);await smod("banner",{data:o},"Banner gespeichert")}catch(e){toast("Bild konnte nicht gelesen werden")}
 }
 async function sicon(f){
   if(!f)return;
@@ -275,14 +277,16 @@ function evtGo(){const t=$("#v_t").value.trim();if(!t)return toast("Titel fehlt"
 function cmdGo(){const n=$("#c_n").value.trim(),t=$("#c_t").value.trim();if(!n||!t)return toast("Name und Antwort eingeben");smod("cmd",{val:n+"="+t},"Befehl gespeichert")}
 async function hookGo(){if(SM())return toast("Streamer-Modus aktiv");const r=await api("mkhook",{ch:srv.id+"/"+$("#h_c").value,name:$("#h_n").value||"Webhook"});if(r.error)return toast(r.error);const u=location.origin+r.url;$("#hk").innerHTML=`<div class="cp"><input readonly value="${u}" onclick="this.select()"><button class="pri" onclick="cpy('${u}')">Kopieren</button></div><small class="dm">POST mit JSON {"text":"…","name":"…"} an diese URL.</small>`}
 async function delGo(){const r=await api("delsrv",{srv:srv.id,confirm:$("#d_c").value});if(r.error)return toast(r.error);ssclose();srv=null;ch=null;await refresh();showHome();toast("Server gelöscht")}
-const insHTML=()=>{const s=srv.stats||{d:{},c:{}},days=[...Array(7)].map((_,i)=>new Date(Date.now()-i*864e5).toISOString().slice(0,10)).reverse(),mx=Math.max(1,...days.map(d=>s.d[d]||0));return `<div>Mitglieder: ${srv.members.length} · Boosts: ${srv.boosts||0} · Nachrichten: ${Object.values(s.d).reduce((a,b)=>a+b,0)}</div>${days.map(d=>`<div style="font-size:12px;display:flex;align-items:center;gap:8px">${d.slice(5)} <span style="display:inline-block;height:8px;border-radius:4px;width:${Math.max(2,(s.d[d]||0)/mx*60)}%;background:var(--red)"></span> ${s.d[d]||0}</div>`).join("")}<b>Top-Kanäle</b>${Object.entries(s.c).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`<div>#${esc(k)}: ${v}</div>`).join("")||'<span class="dm">Noch keine Daten.</span>'}`};
+const insHTML=()=>{const s=srv.stats||{d:{},c:{}},days=[...Array(7)].map((_,i)=>new Date(Date.now()-i*864e5).toISOString().slice(0,10)).reverse(),mx=Math.max(1,...days.map(d=>s.d[d]||0));return `<div>Mitglieder: ${srv.members.length} · Nachrichten: ${Object.values(s.d).reduce((a,b)=>a+b,0)}</div>${days.map(d=>`<div style="font-size:12px;display:flex;align-items:center;gap:8px">${d.slice(5)} <span style="display:inline-block;height:8px;border-radius:4px;width:${Math.max(2,(s.d[d]||0)/mx*60)}%;background:var(--red)"></span> ${s.d[d]||0}</div>`).join("")}<b>Top-Kanäle</b>${Object.entries(s.c).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`<div>#${esc(k)}: ${v}</div>`).join("")||'<span class="dm">Noch keine Daten.</span>'}`};
 function insights(){modal(`<h3>📊 Insights</h3>${insHTML()}`)}
 const SR={
   ov:()=>sc_("Servername",`<div class="cp"><input id="o_n" value="${esc(srv.name)}" maxlength="40"><button class="pri" onclick="smod('rename',{val:$('#o_n').value},'Name gespeichert')">Speichern</button></div>`)
++sc_("Beschreibung (Bio)",`<textarea id="o_d" rows="3" maxlength="200" placeholder="Worum geht es auf deinem Server? Erscheint in der Liste öffentlicher Server.">${esc(srv.desc||"")}</textarea>${sb("Speichern","smod('desc',{val:$('#o_d').value},'Beschreibung gespeichert')","pri")}`)
+    +sc_("Server-Banner",`<div class="sbn" style="${srv.banner?`background-image:url('${srv.banner}')`:""}">${srv.banner?"":"Kein Banner"}</div><div class="cp"><label class="fl">Banner hochladen<input type="file" accept="image/*" hidden onchange="sbanner(this.files[0])"></label>${srv.banner?sb("Entfernen","smod('banner',{},'Banner entfernt')"):""}</div>`)
     +sc_("Server-Icon",`<div class="cp"><div class="sico" style="${srv.icon?`background-image:url('${srv.icon}')`:""}">${srv.icon?"":esc(srv.name[0]).toUpperCase()}</div><label class="fl">Bild hochladen<input type="file" accept="image/*" hidden onchange="sicon(this.files[0])"></label>${srv.icon?sb("Entfernen","smod('icon',{},'Icon entfernt')"):""}</div>`)
     +sc_("Willkommensnachricht",`<textarea id="o_w" rows="3" maxlength="300" placeholder="Wird in der Seitenleiste angezeigt">${esc(srv.welcome||"")}</textarea>${sb("Speichern","smod('welcome',{val:$('#o_w').value},'Gespeichert')","pri")}`)
     +sc_("Sichtbarkeit",`<label class="sw"><span><b>Öffentlicher Server</b><br><small class="dm">Erscheint unter „Öffentliche Server entdecken“.</small></span><input type="checkbox" ${srv.public?"checked":""} onchange="smod('public')"></label>`)
-    +sc_("Info",`<div class="dm">ID: <code>${srv.id}</code><br>Besitzer: ${esc(srv.owner)} · ${srv.members.length} Mitglieder · ${srv.channels.length} Kanäle · Boosts: ${srv.boosts||0}</div>`),
+    +sc_("Info",`<div class="dm">ID: <code>${srv.id}</code><br>Besitzer: ${esc(srv.owner)} · ${srv.members.length} Mitglieder · ${srv.channels.length} Kanäle</div>`),
   ch:()=>sb("＋ Kanal erstellen","mkch()","pri")+srv.channels.map(c=>{const id=c.id;return `<div class="scd"><div class="chh"><b>${c.nsfw?"🔞":IC[c.type]||"#"} ${esc(c.name)}</b><small class="dm">${CT[c.type]||"Text"}</small><span class="sp1"></span>${sb("Umbenennen",`cren('${id}')`)}${sb("Löschen",`cdel('${id}')`,"dng")}</div><div class="cgrid"><label>Kategorie${sel(c.cat||"",[["","Keine"],...(srv.cats||[]).map(x=>[x,x])],`cset('${id}','cat',this.value)`)}</label><label>Slowmode${sel(srv.slow?.[id]||0,SLOW,`cset('${id}','slow',this.value)`)}</label><label>Sichtbar für${sel(c.view||"",[["","Alle"],["mods","Nur Mods"],...rn().map(x=>[x,"Rolle: "+x])],`cset('${id}','view',this.value)`)}</label><label>Schreiben dürfen${sel(c.write||"",[["","Alle"],["mods","Nur Mods"]],`cset('${id}','write',this.value)`)}</label></div><label class="sw"><span>🔞 Altersbeschränkt</span><input type="checkbox" ${c.nsfw?"checked":""} onchange="cset('${id}','nsfw')"></label></div>`}).join(""),
   cat:()=>sb("＋ Kategorie erstellen","mkcat()","pri")+((srv.cats||[]).length?sc_("",(srv.cats||[]).map((k,i)=>`<div class="sr"><b>📁 ${esc(k)}</b><small class="dm">${srv.channels.filter(c=>c.cat==k).length} Kanäle</small><span class="sp1"></span>${sb("Umbenennen",`rencat(${i})`)}${sb("Löschen",`delcat(${i})`,"dng")}</div>`).join("")):sc_("","<div class='dm'>Noch keine Kategorien. Kanäle lassen sich damit gruppieren und ein-/ausklappen.</div>")),
   rol:()=>sc_("Rolle zuweisen",`<div class="cgrid"><label>Mitglied<select id="r_m">${srv.members.map(m=>`<option>${esc(m)}</option>`).join("")}</select></label><label>Rollenname<input id="r_n" list="r_l" maxlength="20" placeholder="z. B. Moderator"><datalist id="r_l">${rn().map(n=>`<option value="${esc(n)}">`).join("")}</datalist></label><label>Farbe<input id="r_c" type="color" value="#8b5cf6"></label></div>${sb("Rolle zuweisen","rolGo()","pri")}<small class="dm">Mit Rollen lassen sich Kanäle freischalten (Kanäle › Sichtbar für).</small>`)
@@ -302,7 +306,6 @@ const SR={
     +sc_("Raid-Schutz",`<label class="sw"><span><b>Raid-Schutz</b><br><small class="dm">Sperrt den Server 10 Min., wenn >5 Nutzer pro Minute beitreten.${(srv.lock||0)>Date.now()?" <b style='color:#ff7b8a'>Aktuell gesperrt!</b>":""}</small></span><input type="checkbox" ${srv.raid?"checked":""} onchange="smod('raid')"></label>`),
   log:()=>sc_("",(srv.log||[]).slice().reverse().map(l=>`<div class="sr"><small class="dm" style="min-width:128px">${new Date(l.t).toLocaleString([],{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</small><b>${esc(l.u)}</b><span class="nm">${esc(l.x)}</span></div>`).join("")||"<div class='dm'>Noch keine Einträge.</div>"),
   ins:()=>sc_("",insHTML()),
-  boo:()=>{const b=srv.boosts||0,lv=b>=14?3:b>=7?2:b>=2?1:0,nx=[2,7,14][lv];return sc_("",`<div style="font-size:42px">🚀</div><div><b>${b}</b> Boosts · Level ${lv}</div>${nx?`<div class="bar"><i style="width:${Math.min(100,b/nx*100)}%"></i></div><small class="dm">Noch ${nx-b} Boost(s) bis Level ${lv+1}</small>`:"<small class='dm'>Höchstes Level erreicht 🎉</small>"}${sb("🚀 Server boosten","boost()","pri")}`)},
   del:()=>isOwn()?sc_("Server löschen",`<div class="dm">Alle Kanäle, Nachrichten und Einstellungen von <b>${esc(srv.name)}</b> werden endgültig gelöscht. Alternativ kannst du den Besitz unter „Mitglieder“ übertragen.</div><input id="d_c" placeholder="Zur Bestätigung den Servernamen eingeben"><button class="dng" onclick="delGo()">🗑 Server endgültig löschen</button>`):sc_("Server verlassen",`<div class="dm">Du kannst jederzeit mit einem Einladungslink wieder beitreten.</div><button class="dng" onclick="leaveSrv()">🚪 Server verlassen</button>`)
 };
 

@@ -1,0 +1,115 @@
+/* ===== Pulsecord v12: Einstellungs-Hub, Profilwechsel, Startanimation, Benachrichtigungen, Insights ===== */
+
+/* ---------- Startanimation ---------- */
+#boot{overflow:hidden;position:fixed}
+#boot .bt-aura{position:absolute;left:50%;top:38%;width:min(120vmin,900px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:conic-gradient(from 0deg,#5aa9ff33,#9b5cff44,#ff5cc833,#5aa9ff33);filter:blur(70px);opacity:.55;animation:btSpin 14s linear infinite}
+#boot .bt-stage{position:relative;width:min(168px,40vw);aspect-ratio:1;display:grid;place-items:center;animation:btIn .7s cubic-bezier(.2,.9,.3,1.2) both}
+#boot .bt-stage .lg{position:relative;z-index:2;width:100%;animation:btFloat 3.2s ease-in-out .7s infinite}
+#boot .bt-rings i{position:absolute;inset:0;border-radius:30%;border:2px solid #9b8cff;opacity:0;animation:btRing 2.6s ease-out infinite}
+#boot .bt-rings i:nth-child(2){animation-delay:.85s}#boot .bt-rings i:nth-child(3){animation-delay:1.7s}
+#boot .bt-name{position:relative;font-size:clamp(26px,6vw,34px);font-weight:800;letter-spacing:.04em;color:#fff;background:linear-gradient(90deg,#5aa9ff,#c58bff,#5aa9ff);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:btUp .7s .25s both,btShine 3.4s linear 1s infinite}
+#boot .ld{position:relative;animation:btUp .7s .4s both}
+#boot .bt-msg{position:relative;min-height:1.4em;font-size:14px;font-weight:600;color:#c9c2ee;transition:opacity .25s;animation:btUp .7s .5s both}
+#boot .bt-msg.sw{opacity:0}
+html.bootout #boot{display:grid!important;pointer-events:none;animation:btOut .55s cubic-bezier(.4,0,.2,1) forwards}
+html.bootout #rail,html.bootout #side,html.bootout #main{animation:btApp .6s cubic-bezier(.2,.8,.2,1) both}
+html.bootout #main{animation-delay:.06s}
+html[data-splash="min"] #boot .bt-aura,html[data-splash="min"] #boot .bt-rings,html[data-splash="min"] #boot .bt-name{display:none}
+html[data-splash="off"] #boot>*{display:none!important}
+html[data-splash="off"].bootout #boot{display:none!important}
+@keyframes btSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes btIn{from{opacity:0;transform:scale(.6) translateY(14px)}to{opacity:1;transform:none}}
+@keyframes btFloat{50%{transform:translateY(-7px) scale(1.025)}}
+@keyframes btRing{0%{opacity:.7;transform:scale(1)}100%{opacity:0;transform:scale(1.75)}}
+@keyframes btUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes btShine{to{background-position:-200% 0}}
+@keyframes btOut{to{opacity:0;transform:scale(1.07);filter:blur(8px)}}
+@keyframes btApp{from{opacity:0;transform:translateY(10px) scale(.992)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#boot *{animation:none!important}html.bootout #boot{animation:btOutR .2s forwards}@keyframes btOutR{to{opacity:0}}html.bootout #rail,html.bootout #side,html.bootout #main{animation:none}}
+body.nomotion *,body.nomotion *::before,body.nomotion *::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important;scroll-behavior:auto!important}
+body.nomotion .npp{animation-duration:var(--npd,6s)!important;animation-iteration-count:1!important}
+
+/* ---------- Einstellungs-Hub ---------- */
+#uset .sbody{padding-top:max(30px,env(safe-area-inset-top))}
+#usc{max-width:820px;display:flex;flex-direction:column;gap:14px}
+#usc h2{margin:0 0 2px;font-size:25px;letter-spacing:-.02em}
+#usc .u12sub{margin:-6px 0 4px;color:var(--mu);font-size:14px}
+#uset .sn .u12n{margin-left:auto;font-size:11px;font-weight:800;padding:2px 7px;border-radius:99px;background:var(--red);color:#fff}
+.u12r{display:flex;align-items:center;gap:14px;padding:6px 0;min-height:44px}
+.u12r+.u12r{border-top:1px solid var(--ln)}
+.u12t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.u12t b{font-size:14.5px}.u12t small{color:var(--mu);font-size:12.5px;line-height:1.35}
+.u12c{flex:none;display:flex;align-items:center;gap:8px;max-width:58%}
+.u12c select,.u12c input[type=time],.u12c input[type=text]{width:auto;max-width:100%}
+.u12c input[type=range]{width:min(170px,38vw)}
+.u12c output{min-width:38px;text-align:right;font-variant-numeric:tabular-nums;color:var(--mu);font-size:13px}
+.u12s{position:relative;display:inline-block;width:46px;height:27px;flex:none;cursor:pointer}
+.u12s input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer;z-index:2}
+.u12s i{position:absolute;inset:0;border-radius:99px;background:#ffffff22;transition:background .2s;box-shadow:inset 0 0 0 1px #ffffff1a}
+.u12s i::after{content:"";position:absolute;left:3px;top:3px;width:21px;height:21px;border-radius:50%;background:#fff;box-shadow:0 2px 6px #0006;transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
+.u12s input:checked+i{background:linear-gradient(90deg,var(--red),#6366f1)}
+.u12s input:checked+i::after{transform:translateX(19px)}
+.u12s input:focus-visible+i{outline:2px solid #fff8;outline-offset:2px}
+.u12g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.u12g label{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--mu);font-weight:600}
+.u12bar{display:flex;gap:8px;flex-wrap:wrap}.u12bar button{flex:1;min-width:130px}
+.u12note{padding:11px 14px;border-radius:14px;background:#ffffff0c;border:1px solid var(--ln);font-size:13px;color:var(--mu);line-height:1.45}
+.u12note.warn{border-color:#f5b94a66;background:#f5b94a14;color:#ffd58a}.u12note.ok{border-color:#3ddc9766;background:#3ddc9712;color:#8ff0c0}
+.u12prev{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--ln);background:var(--bg2)}
+.u12prev .bn{height:96px;background:linear-gradient(120deg,var(--red),#6366f1) center/cover no-repeat}
+.u12prev .bd{display:flex;gap:14px;align-items:flex-end;padding:0 18px 16px;margin-top:-34px}
+.u12prev .av{width:76px;height:76px;flex:none;border:4px solid var(--bg2)}
+.u12prev .nm{display:flex;flex-direction:column;min-width:0;padding-bottom:4px}.u12prev .nm b{font-size:19px}.u12prev .nm small{color:var(--mu)}
+.u12chips{display:flex;gap:8px;flex-wrap:wrap}
+.u12chip{padding:8px 14px;border-radius:99px;border:1px solid var(--ln);background:#ffffff0a;font-weight:700;font-size:13px}
+.u12chip.on{background:linear-gradient(90deg,#8b5cf633,#6366f133);border-color:#8b5cf680;color:#fff}
+
+/* ---------- Konten ---------- */
+.u12a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:16px;border:1px solid var(--ln);background:#ffffff08;transition:background .15s,border-color .15s}
+.u12a:hover{background:#ffffff10}
+.u12a.cur{border-color:#8b5cf680;background:linear-gradient(90deg,#8b5cf61f,#6366f10f)}
+.u12a .u12av{width:44px;height:44px;border-radius:50%;flex:none;background:var(--c,#7b6cff) center/cover no-repeat;display:grid;place-items:center;font-weight:800;color:#fff;box-shadow:0 0 0 2px #ffffff18}
+.u12a .u12i{flex:1;min-width:0;display:flex;flex-direction:column}.u12a .u12i b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.u12a .u12i small{color:var(--mu)}
+.u12a .u12tag{font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px;background:#3ddc9722;color:#7ff0b8}
+.u12a button{padding:8px 13px;border-radius:12px;font-size:13px}
+.u12a.add{border-style:dashed;cursor:pointer;justify-content:center;color:var(--mu);font-weight:700}
+#me .u12sw{flex:none;width:34px;height:34px;padding:0;border-radius:50%;border:0;background:#ffffff10;font-size:15px;line-height:1}
+#me .u12sw:hover{background:#ffffff1f}
+#accpick{display:flex;flex-direction:column;gap:8px;margin:2px 0 8px}
+#accpick .hd{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mu)}
+#accpick .u12a{cursor:pointer;width:100%;text-align:left;font:inherit;color:inherit}
+#auth .u12back{align-self:center;margin-top:4px}
+
+/* ---------- Insights ---------- */
+.ins-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ins-top .u12chips{margin-left:auto}
+.ins-k{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.ins-k>div{padding:14px 15px;border-radius:18px;border:1px solid var(--ln);background:linear-gradient(160deg,#ffffff0d,#ffffff05);display:flex;flex-direction:column;gap:3px}
+.ins-k span{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mu)}
+.ins-k b{font-size:26px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ins-k em{font-style:normal;font-size:12px;font-weight:700;color:var(--mu)}.ins-k em.up{color:#6ee7a8}.ins-k em.dn{color:#ff8a98}
+.ins-bars{display:flex;align-items:flex-end;gap:3px;height:140px;padding-top:8px}
+.ins-bars>div{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative}
+.ins-bars i{display:block;width:100%;min-height:3px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--red),#6366f1);transform-origin:bottom;animation:insG .6s cubic-bezier(.2,.8,.2,1) both;opacity:.92}
+.ins-bars>div:hover i{opacity:1;filter:brightness(1.2)}
+.ins-bars>div.pk i{background:linear-gradient(180deg,#ffd166,#ff8a4c)}
+.ins-lab{display:flex;justify-content:space-between;font-size:11.5px;color:var(--mu);margin-top:4px}
+.ins-row{display:flex;align-items:center;gap:10px;font-size:13.5px}
+.ins-row .nm{flex:0 0 38%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;display:flex;align-items:center;gap:8px}
+.ins-row .nm .av{width:24px;height:24px;flex:none}
+.ins-row .tr{flex:1;height:8px;border-radius:6px;background:#ffffff10;overflow:hidden}.ins-row .tr i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--red),#6366f1);animation:insW .7s cubic-bezier(.2,.8,.2,1) both}
+.ins-row .n{flex:none;min-width:34px;text-align:right;color:var(--mu);font-variant-numeric:tabular-nums}
+.ins-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@keyframes insG{from{transform:scaleY(0)}}@keyframes insW{from{width:0!important}}
+@media(max-width:900px){.ins-two{grid-template-columns:1fr}.u12c{max-width:52%}#usc h2{font-size:22px}}
+@media(max-width:560px){.u12r{flex-wrap:wrap}.u12c{max-width:100%;width:100%;justify-content:flex-end}}
+
+/* ---------- Popup-Position & Dauer (Desktop) ---------- */
+.npp{animation-duration:var(--npd,6s)!important}
+@media(min-width:901px){
+ body.np-tr #ntf{top:16px;bottom:auto;right:16px;left:auto}
+ body.np-tl #ntf{top:16px;bottom:auto;left:16px;right:auto}
+ body.np-bl #ntf{bottom:16px;top:auto;left:16px;right:auto}
+}
+body.cmp .m{padding-top:1px!important;padding-bottom:1px!important;gap:8px!important}
+body.cmp .m .av{width:30px!important;height:30px!important}

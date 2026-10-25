@@ -7,7 +7,7 @@ document.head.appendChild(st);
 var RE=new RegExp("("+Object.keys(MAP).join("|")+")\\uFE0F?","g");
 var SKIP=".rx,.eg,.etabs,textarea,input,script,style,option,select,noscript,[data-keep]";
 function skip(n){var p=n.parentElement;if(!p)return true;if(p.closest(SKIP))return true;
- var m=p.closest(".m");if(m&&!p.closest(".pin,.rp,.tm"))return true;return false}
+ var m=p.closest(".m");if(m&&!p.closest(".pin,.rp,.tm,.ac"))return true;return false}
 function fix(n){
  var t=n.nodeValue;if(!t||!RE.test(t)){RE.lastIndex=0;return}RE.lastIndex=0;
  if(skip(n))return;

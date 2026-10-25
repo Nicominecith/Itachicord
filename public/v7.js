@@ -248,7 +248,7 @@ function hdFix(){
 function railFix(){
   const r=$("#rail");if(!r)return;
   r.querySelectorAll(".ic[title]").forEach(e=>{e.dataset.t=e.title;e.removeAttribute("title")});
-  if(!r.querySelector(".ic.cmp")){const c=document.createElement("div");c.className="ic add cmp";c.dataset.t="Öffentliche Server entdecken";c.textContent="🧭";c.onclick=()=>{addSrv();setTimeout(disc,60)};r.append(c)}
+  if(!r.querySelector(".ic.cmp")){const c=document.createElement("div");c.className="ic add cmp";c.dataset.t="Öffentliche Server entdecken";c.textContent="🧭";c.onclick=()=>discUI();r.append(c)}
 }
 function tabFix(){
   const b=$("#bn");if(!b||typeof ME=="undefined"||!ME)return;const n=pend(),on=document.body.classList.contains("onhome");

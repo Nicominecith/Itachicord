@@ -19,8 +19,8 @@ async function pushSync(force){
     const k=await api("pushkey");if(!k||!k.key)return;
     if(sub&&force){try{await sub.unsubscribe()}catch(e){}sub=null}
     if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(k.key)});
-    const j=JSON.stringify([sub.endpoint,muted()]);if(j==subKey&&!force)return;
-    const r=await api("pushsub",{sub:sub.toJSON(),mu:muted()});
+    const ns=window.pcNtf?pcNtf.ns():{};const j=JSON.stringify([sub.endpoint,muted(),ns]);if(j==subKey&&!force)return;
+    const r=await api("pushsub",{sub:sub.toJSON(),mu:muted(),ns});
     if(r&&r.ok)subKey=j;
   }catch(e){}
 }
