@@ -84,3 +84,28 @@ Siehe `pulsecord-android-src.zip` (Build mit `./build.sh`). Die App lädt https:
 - Server-Erweiterungen: `a=pushkey`, `a=pushsub`, `a=pushunsub`; `a=inbox` liefert zusätzlich `ring`, `dnd` und `fin` (offene Freundschaftsanfragen).
 
 **Design (`public/v6.css`)**: ruhiges Aurora-Licht im Hintergrund, Glas-Flächen mit feinem Lichtrand, weichere Animationen (Server-Icons, Kanalliste, Eingabefeld mit Glow-Fokus, Karten/Fenster), überarbeitete Buttons, **neuer Vollbild-Anrufbildschirm** (pulsierender Avatar, runde Annehmen-/Ablehnen-Knöpfe), neue Hinweisleiste für Benachrichtigungen. Der Service-Worker-Cache heißt jetzt `pulsecord-v7` – nach dem Deploy einmal hart neu laden.
+
+## Neu (v7): Sprachnachrichten, Ende-zu-Ende-Verschlüsselung, 30 Dekorationen, Discord-Navigation
+Dateien: `public/v7.js`, `public/v7.css` (+ kleine Hooks in `index.html`, `v3.js`, `netlify/functions/api.mjs`). Keine neuen Abhängigkeiten. Service-Worker-Cache heißt jetzt `pulsecord-v8` – nach dem Deploy einmal hart neu laden.
+
+**Sprachnachrichten 🎤**
+- Mikrofon-Knopf rechts im Eingabefeld (verschwindet, sobald Text getippt wird). Tippen = Aufnahme starten (Live-Wellenform, max. 5 Min.), ⏹ beenden, ▶ vorhören, ➤ senden, 🗑 verwerfen.
+- Im Chat: Player mit Wellenform, Fortschritt, Antippen der Welle = spulen, Tempo 1× / 1,5× / 2×, automatisch die nächste Sprachnachricht abspielen. Format: WebM/Opus (Chrome, Firefox, Android) bzw. MP4/AAC (Safari/iOS).
+- Speicherung über den vorhandenen Chunk-Upload (`a=up` / `a=dl`); die Nachricht trägt `voice`, `dur`, `wf` (Wellenform).
+
+**Ende-zu-Ende-Verschlüsselung 🔒 (1:1-Direktnachrichten)**
+- Pro Konto ein ECDH-P-256-Schlüsselpaar, erzeugt beim ersten Start im Browser. Der private Schlüssel verlässt das Gerät nie (localStorage `e2k:<name>`); der öffentliche liegt am Konto (`pk`). Pro Chat wird per ECDH + HKDF ein AES-256-GCM-Schlüssel abgeleitet.
+- Verschlüsselt werden Text, Bearbeitungen, Sprachnachrichten und Dateien (je Chunk) in 1:1-DMs. Der Server und Push-Benachrichtigungen sehen nur „🔒 Verschlüsselte Nachricht“.
+- Schloss-Symbol in der Kopfzeile → Sicherheitsnummer zum Vergleichen mit dem Gegenüber. Hat jemand noch keinen Schlüssel, fragt die App vor dem unverschlüsselten Senden nach.
+- **Neue Geräte:** Profil → 🔐 Verschlüsselung → „Jetzt sichern“. Die Passphrase verschlüsselt den Schlüssel (PBKDF2 250 000 Runden + AES-GCM); nur die verschlüsselte Sicherung liegt auf dem Server (`ek`). Ohne Sicherung gehen alte Nachrichten bei Geräteverlust verloren.
+- **Grenzen:** Server-Kanäle und Gruppenchats sind *nicht* Ende-zu-Ende-verschlüsselt. Absender, Zeit, Dateiname/-größe bleiben sichtbar. Max. ca. 2900 Zeichen pro verschlüsselter Nachricht. Weil die Web-App vom Server geladen wird, schützt E2E nicht vor einem manipulierten Server-Code (wie bei jeder Web-App). Anrufe laufen ohnehin per WebRTC (DTLS-SRTP).
+
+**30 Profilbild-Dekorationen ✨**
+- Profil → „Profilbild-Dekoration“: Neon, Regenbogen, Feuer, Eis, Gold, Aurora, Toxic, Lava, Ozean, Galaxie, Sonnenuntergang, Radar, Puls, Glitch, Matrix, Pixel, Schatten, Blitz, Kirschblüte, Herzen, Krone, Heiligenschein, Teufelshörner, Katzenohren, Hasenohren, Engelsflügel, Blätterkranz, Sternenstaub, Mond, Schneefall.
+- Reines CSS (kein Bild-Upload nötig), skaliert mit jeder Avatargröße, respektiert „Bewegung reduzieren“. Für alle sichtbar (Feld `deco`, nur Kennung wird gespeichert). Emoji-Elemente sehen je nach Gerät leicht anders aus.
+
+**Navigation wie bei Discord**
+- *Alle Geräte:* Schnellwechsler (**Strg/Cmd + K** bzw. Tab „Suche“ / Suchfeld in der Seitenleiste) mit `@Person`, `#Kanal`, `*Server`. Tooltips an der Serverleiste, 🧭 „Server entdecken“.
+- *PC:* **Alt + ↑/↓** Kanal/Chat wechseln, **Strg + Alt + ↑/↓** Server wechseln, **Strg + Umschalt + M** Mitgliederliste, **Strg + /** Übersicht. Feste Mitgliederspalte rechts (ab 1100 px, 👥 schaltet sie ein/aus).
+- *Tablet:* Server + Kanäle als Schublade, Mitglieder als Schublade von rechts.
+- *Handy:* Wischen mit Finger-Tracking – nach rechts = Server & Chats, nach links = Mitglieder (auch am Rand zum Schließen). Neue Tab-Leiste: Server · Freunde · Suche · Du. Die alten Wisch-Handler wurden entfernt.

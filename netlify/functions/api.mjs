@@ -241,7 +241,7 @@ export default async (req) => {
     if (c?.view && s.owner !== me && !(s.mods || []).includes(me) && !(c.view !== "mods" && s.roles?.[me]?.n === c.view)) return false;
     return true;
   };
-  const pub = (u) => ({ name: u.name, uid: uidOf(u), status: u.status, activity: u.activity, pron: u.pron, dstyle: u.dstyle, links: u.links, conn: u.conn, created: u.created, dname: u.dname || "", ptheme: u.ptheme || "", verified: !!u.verified, bio: u.bio, color: (u.color || "").toLowerCase() === "#c8102e" ? "#7b6cff" : u.color, hasav: !!u.avatar, avvid: !!u.avatar?.startsWith("data:video"), hasbn: !!u.banner, imv: u.imv || 0 });
+  const pub = (u) => ({ name: u.name, uid: uidOf(u), status: u.status, activity: u.activity, pron: u.pron, dstyle: u.dstyle, links: u.links, conn: u.conn, created: u.created, dname: u.dname || "", ptheme: u.ptheme || "", verified: !!u.verified, bio: u.bio, color: (u.color || "").toLowerCase() === "#c8102e" ? "#7b6cff" : u.color, hasav: !!u.avatar, avvid: !!u.avatar?.startsWith("data:video"), hasbn: !!u.banner, imv: u.imv || 0, deco: u.deco || "", pk: u.pk || "" });
   const srvPub = (s) => {
     const o = { ...s, icon: undefined, hasicon: !!s.icon };
     if (s.prof) { o.prof = {}; for (const [k, p] of Object.entries(s.prof)) o.prof[k] = { name: p.name, bio: p.bio, hasav: !!p.avatar, hasbn: !!p.banner, avvid: !!p.avatar?.startsWith("data:video"), v: p.v || 0 }; }
@@ -253,7 +253,7 @@ export default async (req) => {
   if (a === "me") {
     const servers = (await Promise.all(U.servers.map((sid) => get("s/" + sid, null)))).filter(Boolean).map(srvPub);
     const groups = (await Promise.all((U.groups || []).map((gid) => get("g/" + gid, null)))).filter((g) => g && g.members.includes(me)).map((g) => ({ id: g.id, ch: "dm:g" + g.id, name: g.name, members: g.members, owner: g.owner, hasicon: !!g.icon, iv: g.iv || 0 }));
-    return J({ me: { ...pub(U), groups, email: U.email || "", tfa: !!U.tfa, pst: U.pst || "online", banned: !!U.banned, banreason: U.banreason || "", admin: IS_ADMIN, dms: U.dms || [], ...relOut(), entrance: U.entrance }, servers });
+    return J({ me: { ...pub(U), groups, email: U.email || "", tfa: !!U.tfa, pst: U.pst || "online", banned: !!U.banned, banreason: U.banreason || "", admin: IS_ADMIN, dms: U.dms || [], ...relOut(), entrance: U.entrance, ek: U.ek || "" }, servers });
   }
   if (a === "users") {
     const { blobs } = await st.list({ prefix: "u/" });
@@ -262,6 +262,9 @@ export default async (req) => {
   }
   if (a === "profile") {
     for (const k of ["status", "activity", "pron", "dstyle", "entrance", "conn", "bio", "color", "avatar", "banner"]) if (typeof b[k] === "string") U[k] = b[k].slice(0, k === "entrance" || !["avatar", "banner"].includes(k) ? 700000 : 4500000);
+    if (typeof b.deco === "string") U.deco = /^[a-z0-9]{0,20}$/.test(b.deco) ? b.deco : "";
+    if (typeof b.pk === "string") { try { const j = JSON.parse(b.pk); if (j.kty !== "EC" || j.crv !== "P-256" || b.pk.length > 400) throw 0; U.pk = JSON.stringify({ kty: "EC", crv: "P-256", x: String(j.x), y: String(j.y) }); } catch { return J({ error: "Ungültiger Schlüssel" }, 400); } }
+    if (typeof b.ek === "string") U.ek = b.ek.length > 4000 || !/^[\w+/=-]*$/.test(b.ek) ? "" : b.ek;
     if (typeof b.dname === "string") U.dname = b.dname.replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 32);
     if (typeof b.ptheme === "string") U.ptheme = b.ptheme.slice(0, 220);
     if (b.avatar || b.banner) U.imv = Date.now();
@@ -628,7 +631,7 @@ export default async (req) => {
           if (sl && lm && now - lm.t < sl) return J({ error: "Slowmode aktiv" }, 429);
         }
       }
-      const msg = { id: id(), u: me, t: Date.now(), text, reply: b.reply || null, file: b.file ? (b.file.fid ? { name: String(b.file.name).slice(0, 80), fid: String(b.file.fid).replace(/\W/g, ""), n: +b.file.n, size: +b.file.size, type: String(b.file.type).slice(0, 60) } : { name: String(b.file.name).slice(0, 80), data: String(b.file.data).slice(0, 4000000) }) : null, react: {}, pin: false };
+      const msg = { id: id(), u: me, t: Date.now(), text, reply: b.reply || null, file: b.file ? (b.file.fid ? { name: String(b.file.name).slice(0, 80), fid: String(b.file.fid).replace(/\W/g, ""), n: +b.file.n, size: +b.file.size, type: String(b.file.type).slice(0, 60), ...(b.file.enc ? { enc: 1 } : {}), ...(b.file.voice ? { voice: 1, dur: Math.min(900, Math.max(0, +b.file.dur || 0)), wf: String(b.file.wf || "").replace(/[^0-9a-z]/g, "").slice(0, 64) } : {}) } : { name: String(b.file.name).slice(0, 80), data: String(b.file.data).slice(0, 4000000) }) : null, react: {}, pin: false };
       if (poll) msg.poll = poll;
       m.push(msg);
       const sv2 = await get("s/" + ch.split("/")[0], null);
@@ -650,7 +653,7 @@ export default async (req) => {
           const rp = b.reply && m.find((i) => i.id === b.reply); if (rp && sv2.members.includes(rp.u) && see(rp.u)) add(rp.u, "reply");
           if (names.has("everyone") || names.has("here")) sv2.members.filter(see).forEach((u) => add(u, names.has("everyone") ? "everyone" : "here"));
         }
-        const item = { i: msg.id, t: msg.t, ch, u: me, k: "", tx: (text || (msg.file ? "📎 " + msg.file.name : "")).slice(0, 160), s: sname, c: cname };
+        const item = { i: msg.id, t: msg.t, ch, u: me, k: "", tx: (text.startsWith("e2e1:") ? "🔒 Verschlüsselte Nachricht" : msg.file?.voice ? "🎤 Sprachnachricht" : (text || (msg.file ? "📎 " + (msg.file.enc ? "Datei" : msg.file.name) : ""))).slice(0, 160), s: sname, c: cname };
         await Promise.all([...tg].slice(0, 150).map(async ([t, k]) => {
           const tu = await get("u/" + t, null);
           if (!tu || tu.blocked?.includes(me)) return;

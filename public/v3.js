@@ -169,16 +169,6 @@ if(vv&&matchMedia("(hover:none)").matches){
   vv.addEventListener("resize",f);vv.addEventListener("scroll",()=>window.scrollTo(0,0));f();
 }
 tx.addEventListener("focus",()=>setTimeout(()=>{const m=G("msgs");m.scrollTop=m.scrollHeight},350));
-// Wisch-Geste: vom linken Rand öffnet das Menü, nach links schließt es
-{let sx=0,sy=0,on=0;
- addEventListener("touchstart",e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;on=1},{passive:true});
- addEventListener("touchend",e=>{
-  if(!on)return;on=0;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
-  if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*.6||!matchMedia("(max-width:900px)").matches)return;
-  const sd=G("side");if(!sd)return;
-  if(dx>0&&sx<32&&!sd.classList.contains("open")&&!document.querySelector(".sset,.dlg,#modal:not(.hide)"))sd.classList.add("open");
-  else if(dx<0&&sd.classList.contains("open"))sd.classList.remove("open");
- },{passive:true});}
 // Link aus Systembenachrichtigung (?open=…)
 {let n=0;const iv=setInterval(()=>{if(++n>40)return clearInterval(iv);if(ME&&S){clearInterval(iv);const qp=new URLSearchParams(location.search),o=qp.get("open");if(o){history.replaceState(0,"","/");goTo(o);if(qp.get("acc")=="1"&&window.pcAcceptCall)setTimeout(()=>window.pcAcceptCall(o),400)}}},500)}
 })();
