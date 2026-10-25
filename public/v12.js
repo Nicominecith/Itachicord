@@ -303,7 +303,7 @@ function go(k) {
 }
 window.prof = function (sec) { open_(typeof sec == "string" ? sec : null); };
 addEventListener("keydown", e => {
-  if (e.key === "Escape" && G("uset") && G("modal") && G("modal").classList.contains("hide") && !document.querySelector(".dlg,.crop5")) close();
+  if (e.key === "Escape" && G("uset") && G("modal") && G("modal").classList.contains("hide") && !document.querySelector(".dlg,.crop5") && !(window.v14Dirty && window.v14Dirty())) close();
 }, true);
 
 /* ---------- Aktionen (aus den Inline-Handlern aufrufbar) ---------- */

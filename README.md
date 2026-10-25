@@ -135,3 +135,11 @@ Dateien: `public/v13.js`, `public/v13.css`, Icons in `public/icons/vc/` (aus den
 - **Bildschirmfreigabe:** Der Stream erscheint als eigene Kachel mit „Stream ansehen“ (Klick = große Ansicht, Doppelklick/⛶ = Vollbild). Wer nach dem Start beitritt, sieht den Stream ebenfalls. Fehler werden angezeigt statt verschluckt. Die Signalisierung läuft nicht mehr überlappend, schickt höchstens 60 Nachrichten pro Anfrage und wiederholt bei Netzfehlern.
 - **Desktop-App:** `desktop/main.js` hat jetzt einen Handler für `getDisplayMedia` (Auswahl Bildschirm/Fenster). Ohne ihn schlägt die Freigabe in Electron still fehl.
 - Service-Worker-Cache: `pulsecord-v15` (einmal hart neu laden).
+
+## Neu (v14)
+- **Registrierung mit E-Mail-Bestätigung:** Nach „Weiter“ kommt eine Mail mit 6-stelligem Code *oder* Bestätigungslink (30 Min. gültig, 5 Versuche, 1 Mail/Minute). Das Konto wird erst danach angelegt. Braucht `GMAIL_USER` + `GMAIL_APP_PASS` (siehe oben); ohne diese Variablen wird wie bisher direkt registriert.
+- **E2E wie bei WhatsApp:** Der DM-Schlüssel wird automatisch mit deinem Login-Passwort verschlüsselt auf dem Server gesichert. Auf einem neuen Gerät genügt die Anmeldung, die alten DMs sind wieder lesbar. Passwort ändern → danach unter Profil → 🔐 Verschlüsselung → „Jetzt sichern“ einmal erneuern.
+- **Anrufe:** Freizeichen beim Anrufer (bis zur Annahme, nach 45 s „keine Antwort“), Klingelton + Vibration + blinkender Titel beim Angerufenen, Join-Ton bei Annahme.
+- **Ungespeichert-Leiste** in Server- und Konto-Einstellungen („Zurücksetzen“ / „Änderungen speichern“); Schließen und Abschnittswechsel sind blockiert, bis gespeichert.
+- **Farbwähler** repariert (zeigte nur einen Strich), **Icons** korrigiert (✔ war ein Lautsprecher; untere Leiste mit Discord-Icons).
+- **Bildschirm teilen** gibt es im Anruf (Knopf mit Stream-Symbol). Handy-Browser erlauben die Funktion technisch nicht – dort erscheint ein Hinweis.

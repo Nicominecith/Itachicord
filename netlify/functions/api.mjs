@@ -84,6 +84,10 @@ export default async (req) => {
   // Login/Reset: Benutzername ODER E-Mail (wie bei Discord)
   const who = async (x) => String(x || "").includes("@") ? ((await get("e/" + eh(String(x).trim().toLowerCase()), "")) || "") : clean(x);
 
+  const mkUser = async (n, em, salt, h) => {
+    await put("u/" + n, { name: n, salt, h, status: "", bio: "", email: em, color: "#7b6cff", avatar: "", banner: "", created: Date.now(), servers: [] });
+    await put("e/" + eh(em), n); await st.delete("pv/" + n);
+  };
   if (a === "reg") {
     const n = clean(b.name);
     if (n.length < 2 || !b.pass || b.pass.length < 4) return J({ error: "Name (min. 2) / Passwort (min. 4)" }, 400);
@@ -92,8 +96,31 @@ export default async (req) => {
     if (!em || !okMail(em)) return J({ error: "Bitte eine gültige E-Mail-Adresse angeben" }, 400);
     if (await get("e/" + eh(em), "")) return J({ error: "Diese E-Mail ist schon registriert" }, 400);
     const salt = id();
-    await put("u/" + n, { name: n, salt, h: hash(b.pass, salt), status: "", bio: "", email: em, color: "#7b6cff", avatar: "", banner: "", created: Date.now(), servers: [] });
-    await put("e/" + eh(em), n);
+    if (mailOn()) { // Konto wird erst nach Bestätigung per Code oder Link angelegt
+      if (Date.now() - (await get("rl/v" + n, 0)) < 60000) return J({ error: "Bitte warte eine Minute, bevor du einen neuen Code anforderst" }, 429);
+      await put("rl/v" + n, Date.now());
+      const code = String(crypto.randomInt(0, 1e6)).padStart(6, "0"), key = crypto.randomBytes(16).toString("hex"), sl = id();
+      await put("pv/" + n, { h: hash(code, sl), s: sl, k: key, salt, ph: hash(b.pass, salt), em, exp: Date.now() + 30 * 60000, tries: 0 });
+      try { await mail(em, "Pulsecord – E-Mail bestätigen", `Hallo ${n},\n\ndein Bestätigungscode: ${code}\n\nOder bestätige mit einem Klick:\n${new URL(req.url).origin}/api?a=vlink&n=${n}&k=${key}\n\nGültig 30 Minuten. Warst du das nicht, ignoriere diese Mail einfach.`); }
+      catch (e) { console.error("mail", e.message); return J({ error: "E-Mail konnte nicht gesendet werden" }, 500); }
+      return J({ verify: 1, name: n });
+    }
+    await mkUser(n, em, salt, hash(b.pass, salt)); // Fallback ohne Mail-Einrichtung
+  }
+  if (a === "regverify") {
+    const n = clean(b.name), r = n ? await get("pv/" + n, null) : null;
+    if (!r || r.exp < Date.now() || r.tries >= 5) return J({ error: "Code ungültig oder abgelaufen" }, 400);
+    if (r.h !== hash(String(b.code || "").trim(), r.s)) { r.tries++; await put("pv/" + n, r); return J({ error: "Code falsch" }, 400); }
+    if ((await get("u/" + n)) || (await get("e/" + eh(r.em), ""))) return J({ error: "Name oder E-Mail inzwischen vergeben" }, 400);
+    await mkUser(n, r.em, r.salt, r.ph);
+    const t = crypto.randomBytes(24).toString("hex"); await put("t/" + t, n);
+    return J({ token: t });
+  }
+  if (a === "vlink") {
+    const n = clean(q.get("n")), r = n ? await get("pv/" + n, null) : null, o = new URL(req.url).origin;
+    if (!r || r.exp < Date.now() || r.k !== q.get("k") || (await get("u/" + n)) || (await get("e/" + eh(r.em), ""))) return Response.redirect(o + "/?verified=0", 302);
+    await mkUser(n, r.em, r.salt, r.ph);
+    return Response.redirect(o + "/?verified=1", 302);
   }
   if (a === "reg" || a === "login") {
     const n = a === "login" ? await who(b.name) : clean(b.name), u = n ? await get("u/" + n) : null;

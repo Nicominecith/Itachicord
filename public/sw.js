@@ -1,4 +1,4 @@
-const C="pulsecord-v15";
+const C="pulsecord-v16";
 self.addEventListener("install",()=>self.skipWaiting());
 self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!=C).map(x=>caches.delete(x)))).then(()=>clients.claim())));
 self.addEventListener("fetch",e=>{
@@ -10,7 +10,7 @@ self.addEventListener("fetch",e=>{
     e.respondWith(caches.open(C).then(async c=>(await c.match(r))||fetch(r).then(x=>{if(x.ok)c.put(r,x.clone());return x})));return;
   }
   // App-Shell: Netzwerk zuerst, nach 2,5 s aber sofort die gespeicherte Version (schneller Start, auch bei schlechtem Netz)
-  if(r.mode=="navigate"||u.pathname=="/"||u.pathname=="/v2.js"||u.pathname=="/v3.js"||u.pathname=="/v4.js"||u.pathname=="/v5.js"||u.pathname=="/v6.js"||u.pathname=="/v7.js"||u.pathname=="/v8.js"||u.pathname=="/v9.js"||u.pathname=="/v10.js"||u.pathname=="/v11.js"||u.pathname=="/v12.js"||u.pathname=="/v12.css"||u.pathname=="/v13.js"||u.pathname=="/v13.css"||u.pathname=="/v9.css"||u.pathname=="/v6.css"||u.pathname=="/v4.css"||u.pathname=="/management.html"||u.pathname=="/index.html"){
+  if(r.mode=="navigate"||u.pathname=="/"||u.pathname=="/v2.js"||u.pathname=="/v3.js"||u.pathname=="/v4.js"||u.pathname=="/v5.js"||u.pathname=="/v6.js"||u.pathname=="/v7.js"||u.pathname=="/v8.js"||u.pathname=="/v9.js"||u.pathname=="/v10.js"||u.pathname=="/v11.js"||u.pathname=="/v12.js"||u.pathname=="/v12.css"||u.pathname=="/v13.js"||u.pathname=="/v13.css"||u.pathname=="/v14.js"||u.pathname=="/v14.css"||u.pathname=="/v9.css"||u.pathname=="/v6.css"||u.pathname=="/v4.css"||u.pathname=="/management.html"||u.pathname=="/index.html"){
     e.respondWith(new Promise(res=>{
       const t=setTimeout(async()=>{const m=await caches.match(r);if(m)res(m)},2500);
       fetch(r).then(x=>{clearTimeout(t);if(x.ok){const c=x.clone();caches.open(C).then(k=>k.put(r,c))}res(x)}).catch(async()=>{clearTimeout(t);res((await caches.match(r))||Response.error())});
