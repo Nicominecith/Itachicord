@@ -168,7 +168,6 @@ export default async (req) => {
     github: { auth: "https://github.com/login/oauth/authorize", tok: "https://github.com/login/oauth/access_token", me: "https://api.github.com/user", scope: "read:user", name: (j) => j.login },
     spotify: { auth: "https://accounts.spotify.com/authorize", tok: "https://accounts.spotify.com/api/token", me: "https://api.spotify.com/v1/me", scope: "user-read-private", name: (j) => j.display_name || j.id, basic: 1 },
     twitch: { auth: "https://id.twitch.tv/oauth2/authorize", tok: "https://id.twitch.tv/oauth2/token", me: "https://api.twitch.tv/helix/users", scope: "user:read:email", name: (j) => j.data?.[0]?.login, hdr: 1 },
-    reddit: { auth: "https://www.reddit.com/api/v1/authorize", tok: "https://www.reddit.com/api/v1/access_token", me: "https://oauth.reddit.com/api/v1/me", scope: "identity", name: (j) => j.name, basic: 1 },
     youtube: { auth: "https://accounts.google.com/o/oauth2/v2/auth", tok: "https://oauth2.googleapis.com/token", me: "https://www.googleapis.com/oauth2/v3/userinfo", scope: "openid profile", name: (j) => j.name },
   };
   const origin = new URL(req.url).origin;
@@ -179,8 +178,20 @@ export default async (req) => {
     if (!cid) return J({ error: "Umgebungsvariable OAUTH_" + P + "_ID fehlt in Netlify" }, 400);
     const state = id() + id(); await put("o/" + state, who);
     const u = new URL(o.auth);
-    u.search = new URLSearchParams({ client_id: cid, redirect_uri: origin + "/api?a=cb&p=" + p, response_type: "code", scope: o.scope, state, duration: "temporary" });
+    u.search = new URLSearchParams({ client_id: cid, redirect_uri: origin + "/api?a=cb&p=" + p, response_type: p === "twitch" ? "token" : "code", scope: o.scope, state });
     return Response.redirect(u.toString(), 302);
+  }
+  if (a === "cb" && q.get("p") === "twitch") { // Twitch ohne Secret: Token kommt im #-Teil der URL, die Seite reicht ihn an a=cbt weiter
+    return new Response(`<!doctype html><meta charset=utf-8><body style="font:16px sans-serif;background:#09061a;color:#fff;text-align:center;padding:40px">Verknüpfe Twitch …<script>var h=new URLSearchParams(location.hash.slice(1));fetch("/api?a=cbt&state="+encodeURIComponent(h.get("state")||"")+"&token="+encodeURIComponent(h.get("access_token")||"")).then(function(r){return r.json()}).then(function(j){location.replace(j.ok?"/?linked=twitch":"/?linkerr="+encodeURIComponent(j.error||"Fehler"))}).catch(function(){location.replace("/?linkerr=Netzfehler")})</script>`, { headers: { "content-type": "text/html; charset=utf-8" } });
+  }
+  if (a === "cbt") {
+    const who = await get("o/" + q.get("state"), null), cid = process.env.OAUTH_TWITCH_ID, tk = q.get("token");
+    if (!who || !tk || !cid) return J({ error: "ungültig" }, 400);
+    await st.delete("o/" + q.get("state"));
+    const j = await (await fetch("https://api.twitch.tv/helix/users", { headers: { authorization: "Bearer " + tk, "client-id": cid, "user-agent": "pulsecord/1.0" } })).json(), nm = j.data?.[0]?.login;
+    if (!nm) return J({ error: "Twitch hat den Namen nicht geliefert" }, 400);
+    const u = await get("u/" + who); (u.links ||= {}).twitch = nm; await put("u/" + who, u);
+    return J({ ok: 1 });
   }
   if (a === "cb") {
     const p = q.get("p"), o = OA[p], P = String(p).toUpperCase(), who = await get("o/" + q.get("state"), null);
@@ -649,6 +660,7 @@ export default async (req) => {
     if (!since) return J({ now: Date.now(), items: [], ring, dnd, fin: U.fin || [] });
     return J({ now: Date.now(), items: (await get("n/" + me, [])).filter((x) => x.t >= since), ring, dnd, fin: U.fin || [] });
   }
+  if (a === "unlink") { const p = String(b.p || ""); if (U.links && p in U.links) { delete U.links[p]; await put("u/" + me, U); } return J({ ok: 1 }); }
   if (a === "logout") { await st.delete("t/" + (req.headers.get("x-token") || "x")); return J({ ok: 1 }); }
   if (a === "pushkey") return J({ key: (await vapid(st)).publicKey });
   if (a === "pushsub") {

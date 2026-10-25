@@ -190,27 +190,34 @@ const selH = (cur, opts, fn) => `<select onchange="${fn}">${opts.map(([v, l]) =>
 const nt = (k, label, d) => row(label, d, tg(ncfg()[k] !== false, `U12.n('${k}',this.checked)`));
 
 const SECS = [
-  ["g", "Benutzer"], ["acc", "👤", "Mein Konto"], ["prof", "🔁", "Profile wechseln"],
+  ["g", "Benutzer"], ["acc", "👤", "Mein Konto"], ["apps", "🔗", "Apps"], ["prof", "🔁", "Profile wechseln"],
   ["g", "App"], ["ntf", "🔔", "Benachrichtigungen"], ["look", "🎨", "Darstellung"], ["snd", "🔊", "Sprache & Ton"],
   ["g", "Sicherheit"], ["sec", "🔒", "Sicherheit & Datenschutz"],
   ["g", "Gerät"], ["dev", "⚙️", "Gerät & App"]
 ];
-const TITLES = { acc: "Mein Konto", prof: "Profile wechseln", ntf: "Benachrichtigungen", look: "Darstellung", snd: "Sprache & Ton", sec: "Sicherheit & Datenschutz", dev: "Gerät & App" };
+const TITLES = { acc: "Mein Konto", apps: "Apps", prof: "Profile wechseln", ntf: "Benachrichtigungen", look: "Darstellung", snd: "Sprache & Ton", sec: "Sicherheit & Datenschutz", dev: "Gerät & App" };
 let cur = "acc", themeTouched = false;
 
 const R = {
   acc() {
     const p = (typeof ptOf == "function" && ptOf(ME)) || { b1: "#0f1b4d", b2: "#6d3fd9", a: "#5aa9ff", t: "#ffffff" };
     const ds = [["n", "Normal"], ["glow", "Leuchten"], ["fire", "Feuer"], ["grad", "Verlauf"], ["rainbow", "Regenbogen"], ["shake", "Wackeln"], ["mono", "Monospace"], ["serif", "Serif"]];
-    const conn = ["github", "spotify", "twitch", "reddit", "youtube", "steam"].map(x => `<button onclick="location.href='/api?a=${x == "steam" ? "steam" : "oauth&p=" + x}&t='+T">🔗 ${x}${(ME.links || {})[x] ? " ✅" : ""}</button>`).join("");
+    const conn = ["github", "spotify", "twitch", "youtube", "steam"].map(x => `<button onclick="location.href='/api?a=${x == "steam" ? "steam" : "oauth&p=" + x}&t='+T">🔗 ${x}${(ME.links || {})[x] ? " ✅" : ""}</button>`).join("");
     const presets = typeof PT5 != "undefined" ? Object.keys(PT5).map(k => `<button onclick="p5pre('${k}');U12.tt()">${k}</button>`).join("") : "";
     return `<div class="u12prev"><div class="bn" style="${ME.banner ? `background-image:url('${ME.banner}')` : ""}"></div><div class="bd">${av(ME.name, "glow")}<div class="nm"><b>${E(ME.dname || ME.name)}</b><small>@${E(ME.name)}${ME.pron ? " · " + E(ME.pron) : ""}</small></div></div></div>`
       + (typeof uidRow == "function" ? uidRow(ME.name) : "")
       + card("Profil", `<div class="u12g"><label>Anzeigename<input id="p5dn" maxlength="32" placeholder="${E(ME.name)}" value="${E(ME.dname || "")}"></label><label>Custom Status<input id="ps" maxlength="60" value="${E(ME.status || "")}"></label><label>Aktivität<input id="pt" maxlength="60" placeholder="z. B. Spielt Minecraft" value="${E(ME.activity || "")}"></label><label>Pronomen<input id="pr" maxlength="20" value="${E(ME.pron || "")}"></label></div><label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--mu);font-weight:600">Über mich<textarea id="pb" rows="3" maxlength="300" style="resize:vertical">${E(ME.bio || "")}</textarea></label>`)
       + card("Aussehen", `<div class="u12g"><label>Akzentfarbe<input id="pc" type="color" value="${ME.color || "#7b6cff"}"></label><label>Namensstil<select id="pd">${ds.map(([k, l]) => `<option value="${k}" ${(ME.dstyle || "n") == k ? "selected" : ""}>${l}</option>`).join("")}</select></label><label>Avatar (auch GIF)<input id="pa" type="file" accept="image/*,video/*"></label><label>Banner<input id="pn" type="file" accept="image/*"></label><label>Beitritts-Sound<input id="pe" type="file" accept="audio/*"></label></div><div class="u12bar"><button onclick="decoUI()">✨ Profilbild-Dekoration${ME.deco ? " · aktiv" : ""}</button></div>`)
       + card("Profil-Theme (für alle sichtbar)", `<div class="u12bar">${presets}</div><div class="u12g"><label>Hintergrund 1<input id="p5b1" type="color" value="${p.b1}" oninput="U12.tt()"></label><label>Hintergrund 2<input id="p5b2" type="color" value="${p.b2}" oninput="U12.tt()"></label><label>Akzent<input id="p5a" type="color" value="${p.a}" oninput="U12.tt()"></label><label>Schrift<input id="p5t" type="color" value="${p.t}" oninput="U12.tt()"></label></div><div class="u12bar"><button onclick="U12.resetTheme()">Profil-Theme zurücksetzen</button></div>`)
-      + card("Verknüpfte Konten", `<div class="u12bar">${conn}</div><textarea id="pcn" rows="3" placeholder="Verknüpfungen, eine pro Zeile: dienst=name (spotify, steam, twitch, youtube, github, reddit, x, tiktok, xbox, psn)">${E(ME.conn || "")}</textarea>`)
+      + card("Verknüpfte Konten", `<div class="u12bar"><button onclick="U12.go('apps')">🔗 Apps verbinden (GitHub, Spotify, Twitch, YouTube, Steam)</button></div><textarea id="pcn" rows="3" placeholder="Verknüpfungen, eine pro Zeile: dienst=name (spotify, steam, twitch, youtube, github, x, tiktok, xbox, psn)">${E(ME.conn || "")}</textarea>`)
       + `<div class="u12bar"><button class="pri" onclick="U12.saveAll()">💾 Alles speichern</button></div>`;
+  },
+  apps() {
+    const AP = [["github", "GitHub"], ["spotify", "Spotify"], ["twitch", "Twitch"], ["youtube", "YouTube"], ["steam", "Steam"]], L = ME.links || {};
+    return `<p class="u12sub">Verbinde deine Konten. Verbundene Apps erscheinen mit Logo auf deinem Profil – für alle sichtbar.</p>` + AP.map(([k, n]) =>
+      card("", `<div class="app12"><img src="/icons/apps/${k}.png" alt="" width="40" height="40"><div class="nm"><b>${n}</b><small>${L[k] ? "✅ Verbunden als " + E(L[k]) : "Nicht verbunden"}</small></div>`
+        + `<div class="u12bar"><button onclick="location.href='/api?a=${k == "steam" ? "steam" : "oauth&p=" + k}&t='+T">${L[k] ? "Neu verbinden" : "Verbinden"}</button>${L[k] ? `<button onclick="U12.unlink('${k}')">Trennen</button>` : ""}</div></div>`)).join("")
+      + `<div class="u12note">Fehlt beim Verbinden eine Meldung wie „Umgebungsvariable … fehlt“, ist der Dienst auf dem Server noch nicht eingerichtet.</div>`;
   },
   prof() {
     accNote();
@@ -308,6 +315,7 @@ addEventListener("keydown", e => {
 
 /* ---------- Aktionen (aus den Inline-Handlern aufrufbar) ---------- */
 window.U12 = {
+  unlink: async (p) => { const r = await api("unlink", { p }); if (r && r.error) return toast(r.error); if (ME.links) delete ME.links[p]; if (U[ME.name] && U[ME.name].links) delete U[ME.name].links[p]; go("apps"); },
   go, close, sw: switchTo, add: addAccount,
   rm: async n => {
     if (gME() && n === gME().name) return U12.out();
