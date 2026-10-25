@@ -1,0 +1,218 @@
+200 FUNKTIONEN, DIE BEI DISCORD FEHLEN (oder nur eingeschränkt vorhanden sind)
+Stand: 25.10.2026 - einzelne Punkte wurden von Discord eventuell inzwischen teilweise ergänzt.
+
+=== NACHRICHTEN (1-30) ===
+1. Nachrichten zeitgesteuert senden
+2. Bearbeitungsverlauf einsehen
+3. Ende-zu-Ende-Verschlüsselung für Textnachrichten
+4. Lesezeichen / gespeicherte Nachrichten
+5. Zuverlässige Erinnerungsfunktion für Nachrichten
+6. Threads in privaten Nachrichten
+7. Entwürfe, die auf allen Geräten synchron sind
+8. Wiederkehrende, geplante Nachrichten
+9. "Senden rückgängig machen" mit Zeitfenster
+10. Nachricht an mehrere Kanäle gleichzeitig senden
+11. Native Übersetzung von Nachrichten
+12. Formatierungsleiste (Rich-Text-Editor) statt nur Markdown
+13. Tabellen in Nachrichten
+14. Codeblöcke mit Vorschau/Ausführung
+15. Persönliche Pins (nur für mich sichtbar)
+16. Mehr als 50 Pins pro Kanal
+17. Nachrichtenvorlagen / Textbausteine
+18. Übersicht aller offenen Entwürfe
+19. Teile einer Nachricht gezielt zitieren
+20. Mehrere Nachrichten gleichzeitig auswählen, weiterleiten oder löschen
+21. Einzelne Threads stummschalten (feiner als bisher)
+22. Antworten als Baumansicht
+23. Live-Vorschau für Markdown beim Tippen
+24. Eigene Emojis ohne Nitro serverübergreifend
+25. Reaktionen mit Zeitstempel einsehen
+26. Optionale Lesebestätigungen
+27. Selbstlöschende Nachrichten in Servern
+28. Einfachere Spoiler-Funktion für ganze Nachrichten
+29. Link-Vorschau pro Nachricht vor dem Senden abschaltbar
+30. Nachrichten als "wichtig" markieren
+
+=== SUCHE & ORGANISATION (31-50) ===
+31. Serverübergreifende Suche
+32. Suchfilter nach Dateityp, Größe und Dauer
+33. Regex-Suche
+34. Gespeicherte Suchanfragen
+35. Textsuche in Anhängen (PDF, Bilder per OCR)
+36. Chatverlauf nativ exportieren
+37. Ordner für Direktnachrichten
+38. Kanäle als Favoriten markieren
+39. Eigene Kanalsortierung pro Nutzer
+40. Tags/Labels für Nachrichten
+41. Persönlicher Notizkanal
+42. Einheitliche Inbox für alle Ungelesenen
+43. Priorisierte Inbox (wichtig / sonstiges)
+44. Mehrere Fenster nativ in der App
+45. Split-View: zwei Kanäle nebeneinander
+46. Schnellwechsler mit Verlauf der letzten Kanäle
+47. Serverordner mit mehr Anpassung
+48. Kanäle persönlich archivieren
+49. Automatische Kanalzusammenfassungen (optional, KI)
+50. Zusammenfassung verpasster Nachrichten
+
+=== SPRACHE & VIDEO (51-80) ===
+51. Sprachkanäle mit Aufnahmefunktion
+52. Mitschnitte und Zusammenfassungen von Sprachchats
+53. Automatische Transkription von Sprachnachrichten
+54. Live-Untertitel in Sprachkanälen
+55. Bildschirmübertragung mit Ton unter Linux
+56. Mehrere Bildschirme gleichzeitig teilen
+57. Hohe Streamqualität kostenlos
+58. Gemeinsames Whiteboard
+59. Gemeinsame Dokumentenbearbeitung
+60. "Hand heben" in Sprachkanälen
+61. Redeliste / Sprechwarteschlange
+62. Breakout-Räume
+63. Sprachevents mit Kalendereinladung
+64. Virtuelle Hintergründe
+65. Rauschunterdrückung in einstellbaren Stufen
+66. Equalizer fürs Mikrofon
+67. Push-to-Talk-Einstellungen pro Server
+68. Replay-Puffer für Audio-Clips
+69. Videoaufnahme von Streams
+70. Stream mit Verzögerungsoption
+71. Native Watch-Party (synchrones Video)
+72. Native Musikwiedergabe im Sprachkanal
+73. Soundboard ohne Limit für alle
+74. Sprachnachrichten: Tempo ändern und in der Wellenform springen
+75. Längere Sprachnachrichten
+76. Größere Gruppenanrufe in privaten Chats
+77. Anrufverlauf
+78. Anruf zwischen Geräten übergeben
+79. Getrennte Audioausgabe für Stream und Voice
+80. Mehr Teilnehmer in Videochats
+
+=== SERVERVERWALTUNG & MODERATION (81-115) ===
+81. Mehr Rollen- und Berechtigungsvorlagen
+82. Detaillierte Statistiken auch für kleine Server
+83. Umfragen mit mehr Optionen (Anonymität, Zeitplan)
+84. Wiki- / Notizbereich pro Server
+85. Aufgabenverwaltung (To-dos) für Server
+86. Gemeinsamer Kalender mit iCal-Export
+87. Natives Ticketsystem
+88. Beitrittsformulare / Bewerbungen
+89. Besserer Willkommensbildschirm mit Verifizierung
+90. Besserer Spam- und Raid-Schutz ohne Bots
+91. Zentrales Moderations-Dashboard
+92. Natives Verwarnsystem (Warns)
+93. Moderationsnotizen zu Mitgliedern
+94. Temporäre Rollen mit Ablaufdatum
+95. Rollenauswahl per Selbstzuweisung (erweitert)
+96. Konfigurierbare Thread-Archivierung
+97. Kanalvorlagen
+98. Server-Backups und Wiederherstellung
+99. Serverstruktur klonen/exportieren
+100. Verschachtelte Kategorien
+101. Unterkanäle
+102. Berechtigungsmatrix-Übersicht
+103. Erweiterter Berechtigungssimulator ("Was sieht Nutzer X?")
+104. Audit-Log länger als 45 Tage
+105. Audit-Log durchsuchbar und exportierbar
+106. Ban-Listen zwischen Servern teilen
+107. Slowmode pro Rolle oder Nutzer
+108. Wortfilter mit Regex
+109. Gastzugang ohne Konto (Lesemodus)
+110. Öffentliche Webansicht von Kanälen (opt-in)
+111. Forenkanäle mit Voting und Lösungsmarkierung
+112. Wissensdatenbank aus Forenbeiträgen
+113. Geplante Ankündigungen mit Lesebestätigung
+114. Mitgliederverzeichnis mit Profilfeldern
+115. Serverspezifische Profilfelder (Pronomen, Bio, Rolle)
+
+=== DATENSCHUTZ & SICHERHEIT (116-140) ===
+116. Ende-zu-Ende-Verschlüsselung für Gruppenchats
+117. Passwortgeschützte Kanäle
+118. App-Sperre per PIN/Biometrie auf dem Desktop
+119. Verschlüsselte lokale Datenspeicherung
+120. Pseudonyme Konten
+121. Konto komplett ohne Telefonnummer
+122. Online-Status pro Person steuerbar
+123. Zeitgesteuerter Unsichtbar-Modus
+124. Screenshot-Warnung (optional)
+125. Medien, die nur einmal ansehbar sind
+126. Transparentes Datenschutz-Dashboard
+127. Datenexport in lesbarem Format
+128. Detailliertere Verwaltung aktiver Sitzungen
+129. Hardware-Key-Pflicht für Moderatoren
+130. Verlauf von Namensänderungen
+131. Besserer Schutz vor Fremd-DMs
+132. Filter für Freundschaftsanfragen
+133. Blockieren in Stufen (nur Voice, nur Text)
+134. Bessere Phishing-Link-Warnung
+135. Automatische Betrugserkennung in Nachrichten
+136. Transparenzberichte zu Moderationsentscheidungen
+137. Datensparsame Altersverifizierung
+138. Detailliertere Kindersicherung
+139. Einfachere Konto-Wiederherstellung
+140. Mehrere Konten gleichzeitig angemeldet
+
+=== BENACHRICHTIGUNGEN (141-155) ===
+141. Zeitpläne für "Nicht stören"
+142. Kanalweises Stummschalten mit Zeitlimit für Einzelpersonen
+143. Stichwort-Benachrichtigungen
+144. Benachrichtigungs-Digest (Zusammenfassung)
+145. Priorisierte Kontakte durchbrechen "Nicht stören"
+146. Fokusmodus
+147. Wenn-Dann-Regeln für Benachrichtigungen
+148. Nur Antworten auf eigene Nachrichten melden
+149. Benachrichtigungsverlauf
+150. Snooze für einzelne Benachrichtigungen
+151. Eigene Töne pro Server
+152. Eigene Benachrichtigungstöne für alle Nutzer
+153. Smartwatch-Unterstützung
+154. E-Mail-Zusammenfassung verpasster Nachrichten
+155. Profile je nach Ort oder WLAN
+
+=== BARRIEREFREIHEIT & PERSONALISIERUNG (156-175) ===
+156. Eigene Themes für alle Nutzer, nicht nur Nitro
+157. Offizielle CSS-Anpassung
+158. Erweiterter Kompaktmodus
+159. Frei wählbare Schriftarten
+160. Layout-Editor für Seitenleisten
+161. Bessere Screenreader-Unterstützung
+162. Farbenblind-Modi
+163. Hochkontrast-Theme
+164. Vollständig anpassbare Tastenkürzel
+165. Sprachsteuerung
+166. Mehr Text-to-Speech-Stimmen und -Optionen
+167. Dyslexie-freundliche Schrift
+168. Granular reduzierbare Animationen
+169. Automatischer Theme-Wechsel nach Uhrzeit
+170. Profil-Themes kostenlos
+171. Mehrere Profile (Arbeit/Freizeit)
+172. Status-Vorlagen mit Zeitplan
+173. Status mit Kalender-Integration
+174. Homescreen-Widgets
+175. Optimiertes Tablet-Layout
+
+=== PLATTFORM, TECHNIK & API (176-200) ===
+176. Offene, standardisierte API für Nutzerkonten (ohne Selfbot-Bann)
+177. Offline-Modus mit Zugriff auf zuletzt geladene Chats
+178. Offiziell erlaubte Drittanbieter-Clients
+179. Offizielles Plugin-System
+180. Bessere Verwaltungsoberfläche für Webhooks
+181. Offizieller Bot-Marktplatz mit Bewertungen
+182. Föderation / Matrix-Bridge
+183. Self-Hosting-Option
+184. Nativer Export kompletter Server
+185. Kalender-Integration (Google, Outlook)
+186. Integration von Aufgaben-Tools
+187. E-Mail-Bridge
+188. Dateivorschau für mehr Formate
+189. Größere Upload-Limits kostenlos
+190. Integrierter Cloud-Speicher mit Ordnern
+191. Dateiversionierung
+192. Bildbearbeitung vor dem Senden (zuschneiden, markieren)
+193. Integriertes Screenshot- und Aufnahmetool
+194. Geringerer RAM-Verbrauch
+195. Schnellerer App-Start
+196. Vollständiger Wayland-Support unter Linux
+197. Offizielle Linux-Pakete (Flatpak, Deb)
+198. Stabilere Verbindung bei schlechtem Netz
+199. Datensparmodus mobil
+200. Transparente Roadmap mit Community-Voting
