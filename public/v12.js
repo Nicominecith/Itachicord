@@ -190,12 +190,12 @@ const selH = (cur, opts, fn) => `<select onchange="${fn}">${opts.map(([v, l]) =>
 const nt = (k, label, d) => row(label, d, tg(ncfg()[k] !== false, `U12.n('${k}',this.checked)`));
 
 const SECS = [
-  ["g", "Benutzer"], ["acc", "👤", "Mein Konto"], ["apps", "🔗", "Apps"], ["prof", "🔁", "Profile wechseln"],
+  ["g", "Benutzer"], ["acc", "👤", "Mein Konto"], ["apps", "🔗", "Apps"], ["extras", "🧰", "Extras"], ["prof", "🔁", "Profile wechseln"],
   ["g", "App"], ["ntf", "🔔", "Benachrichtigungen"], ["look", "🎨", "Darstellung"], ["snd", "🔊", "Sprache & Ton"],
   ["g", "Sicherheit"], ["sec", "🔒", "Sicherheit & Datenschutz"],
   ["g", "Gerät"], ["dev", "⚙️", "Gerät & App"]
 ];
-const TITLES = { acc: "Mein Konto", apps: "Apps", prof: "Profile wechseln", ntf: "Benachrichtigungen", look: "Darstellung", snd: "Sprache & Ton", sec: "Sicherheit & Datenschutz", dev: "Gerät & App" };
+const TITLES = { acc: "Mein Konto", apps: "Apps", extras: "Extras", prof: "Profile wechseln", ntf: "Benachrichtigungen", look: "Darstellung", snd: "Sprache & Ton", sec: "Sicherheit & Datenschutz", dev: "Gerät & App" };
 let cur = "acc", themeTouched = false;
 
 const R = {
@@ -218,6 +218,9 @@ const R = {
       card("", `<div class="app12"><img src="/icons/apps/${k}.png" alt="" width="40" height="40"><div class="nm"><b>${n}</b><small>${L[k] ? "✅ Verbunden als " + E(L[k]) : "Nicht verbunden"}</small></div>`
         + `<div class="u12bar"><button onclick="location.href='/api?a=${k == "steam" ? "steam" : "oauth&p=" + k}&t='+T">${L[k] ? "Neu verbinden" : "Verbinden"}</button>${L[k] ? `<button onclick="U12.unlink('${k}')">Trennen</button>` : ""}</div></div>`)).join("")
       + `<div class="u12note">Fehlt beim Verbinden eine Meldung wie „Umgebungsvariable … fehlt“, ist der Dienst auf dem Server noch nicht eingerichtet.</div>`;
+  },
+  extras() {
+    return `<p class="u12sub">Lesezeichen, geplante Nachrichten, Vorlagen, Notizen, Barrierefreiheit, App-Sperre und mehr.</p><div class="u12bar"><button class="pri" onclick="U12.close();p16open()">🧰 Extras öffnen</button></div>`;
   },
   prof() {
     accNote();

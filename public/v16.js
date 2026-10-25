@@ -34,7 +34,7 @@
     } catch (e) { console.warn("voice-e2e", e); }
   }
   var RPC = window.RTCPeerConnection;
-  if (RPC) {
+  if (RPC && localStorage.p16vx == "1") { // Beta, standardmäßig AUS (Anrufe liefen damit fehlerhaft)
     var PC = function () {
       var pc = new (Function.prototype.bind.apply(RPC, [null].concat([].slice.call(arguments))))();
       pc.addEventListener("track", function (e) { vx(e.receiver, "dec"); });
@@ -188,7 +188,7 @@
     if (tab == "kw") return '<p>Benachrichtigung, wenn ein Wort im geöffneten Chat fällt (kommagetrennt):</p><input id="p16kw" value="' + h(LS("kw", []).join(", ")) + '" onchange="SV16(\'kw\',this.value.split(\',\').map(function(s){return s.trim()}).filter(Boolean))"><p><small>Prüft Nachrichten im aktuell geöffneten Kanal, nicht im Hintergrund.</small></p>';
     if (tab == "lk") { var A = JSON.parse(localStorage.p16auto || "{}"); var sel = function (k, o) { return "<select onchange=\"p16look('" + k + "',this.value)\">" + o.map(function (x) { return '<option value="' + x[0] + '"' + ((a[k] || "") == x[0] ? " selected" : "") + ">" + x[1] + "</option>"; }).join("") + "</select>"; };
       return "<label>Farbenblind-Hilfe " + sel("cb", [["", "aus"], ["p", "Rot-Schwäche (Protanopie)"], ["d", "Grün-Schwäche (Deuteranopie)"], ["t", "Blau-Gelb-Schwäche (Tritanopie)"]]) + "</label><label>Hoher Kontrast " + sel("hc", [["", "aus"], ["1", "an"]]) + "</label><label>Schrift " + sel("font", [["", "Standard"], ["lexend", "Lexend (leicht lesbar)"], ["atk", "Atkinson Hyperlegible"], ["serif", "Serif"], ["mono", "Monospace"]]) + "</label><label>Dyslexie-freundlich (Abstände) " + sel("dys", [["", "aus"], ["1", "an"]]) + "</label><label>Schriftgröße " + sel("size", [["", "100 %"], ["90", "90 %"], ["115", "115 %"], ["130", "130 %"], ["150", "150 %"]]) + '</label><label>Automatisch Hell/Dunkel: <input type="checkbox" ' + (A.on ? "checked" : "") + ' onchange="p16auto(\'on\',this.checked)"> dunkel von <input type="time" value="' + (A.from || "20:00") + '" onchange="p16auto(\'from\',this.value)"> bis <input type="time" value="' + (A.to || "07:00") + '" onchange="p16auto(\'to\',this.value)"></label><label>Eigenes CSS (nur für dich)<textarea rows="5" onchange="p16look(\'css\',this.value)" placeholder="z. B. .m{border-radius:12px}">' + h(a.css || "") + "</textarea></label>"; }
-    if (tab == "sc") { var K = JSON.parse(localStorage.p16lock || "{}"); return "<p><b>App-Sperre</b> (PIN, nur auf diesem Gerät)</p><div class=\"p16r\"><input id=\"p16np\" type=\"password\" inputmode=\"numeric\" placeholder=\"Neue PIN (min. 4)\"><select id=\"p16lm\"><option value=\"0\">nur manuell</option><option value=\"1\">nach 1 Min.</option><option value=\"5\">nach 5 Min.</option><option value=\"15\">nach 15 Min.</option></select><button onclick=\"p16setpin()\">Aktivieren</button>" + (K.h ? '<button onclick="p16lockoff()">Aus</button><button onclick="p16lockNow()">Jetzt sperren</button>' : "") + "</div><p><small>Schützt vor neugierigen Blicken, ersetzt aber keine Geräte-Sperre (läuft im Browser).</small></p><label>Link-Warnung bei verdächtigen Links <input type=\"checkbox\" " + (localStorage.p16links != "0" ? "checked" : "") + " onchange=\"localStorage.p16links=this.checked?'1':'0'\"></label><hr><p><b>Verschlüsselung:</b> Voice-Anrufe (1:1) und Sprachnachrichten sind Ende-zu-Ende-verschlüsselt. Textnachrichten sind es bewusst nicht. Server-Sprachkanäle und Gruppenanrufe sind nicht E2E.</p>"; }
+    if (tab == "sc") { var K = JSON.parse(localStorage.p16lock || "{}"); return "<p><b>App-Sperre</b> (PIN, nur auf diesem Gerät)</p><div class=\"p16r\"><input id=\"p16np\" type=\"password\" inputmode=\"numeric\" placeholder=\"Neue PIN (min. 4)\"><select id=\"p16lm\"><option value=\"0\">nur manuell</option><option value=\"1\">nach 1 Min.</option><option value=\"5\">nach 5 Min.</option><option value=\"15\">nach 15 Min.</option></select><button onclick=\"p16setpin()\">Aktivieren</button>" + (K.h ? '<button onclick="p16lockoff()">Aus</button><button onclick="p16lockNow()">Jetzt sperren</button>' : "") + "</div><p><small>Schützt vor neugierigen Blicken, ersetzt aber keine Geräte-Sperre (läuft im Browser).</small></p><label>Link-Warnung bei verdächtigen Links <input type=\"checkbox\" " + (localStorage.p16links != "0" ? "checked" : "") + " onchange=\"localStorage.p16links=this.checked?'1':'0'\"></label><hr><p><b>Verschlüsselung:</b> Sprachnachrichten sind Ende-zu-Ende-verschlüsselt, Textnachrichten bewusst nicht.</p><label>Voice-Anrufe 1:1 verschlüsseln (Beta, nach Änderung Seite neu laden; bei Knacken/Stille ausschalten) <input type=\"checkbox\" "+(localStorage.p16vx=="1"?"checked":"")+" onchange=\"localStorage.p16vx=this.checked?'1':'0'\"></label>"; }
     return '<div id="p16ft">Lade …</div>';
   }
   function ftList() {
@@ -207,7 +207,7 @@
   }
   function open() {
     if ($1("#p16p")) return; var p = document.createElement("div"); p.id = "p16p";
-    p.innerHTML = '<div class="p16w"><div class="p16h"><b>✨ Pulse+</b><button onclick="p16close()">✕</button></div><div class="p16t"></div><div class="p16b"></div></div>'; document.body.append(p);
+    p.innerHTML = '<div class="p16w"><div class="p16h"><b>🧰 Extras</b><button onclick="p16close()">✕</button></div><div class="p16t"></div><div class="p16b"></div></div>'; document.body.append(p);
     p.onclick = function (e) { if (e.target == p) p16close(); }; draw();
   }
   window.p16close = function () { var p = $1("#p16p"); p && p.remove(); };
@@ -229,10 +229,10 @@
   window.p16lockNow = function () { p16close(); lock(); };
 
   /* Start: Knopf, Tastenkürzel (Strg+Umschalt+P / Strg+L), Beobachter */
+  window.p16open = open;
   function init() {
     if (!document.body) return setTimeout(init, 200);
-    document.body.insertAdjacentHTML("beforeend", '<button id="p16fab" title="Pulse+ (Strg+Umschalt+P)" aria-label="Pulse+">✨</button>'); $1("#p16fab").onclick = open;
-    addEventListener("keydown", function (e) { if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() == "p") { e.preventDefault(); open(); } if (e.ctrlKey && e.key.toLowerCase() == "l" && localStorage.p16lock) { e.preventDefault(); lock(); } });
+    addEventListener("keydown", function (e) { if (e.ctrlKey && e.key.toLowerCase() == "l" && localStorage.p16lock) { e.preventDefault(); lock(); } });
     var box = $1("#msgs"); if (box) new MutationObserver(decorate).observe(box, { childList: true });
     look(); autoTheme(); lock();
   }
