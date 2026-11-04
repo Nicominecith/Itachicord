@@ -1,0 +1,56 @@
+/* v9: Discord-Look für Nachrichten */
+#msgs{scrollbar-width:thin;scrollbar-color:#ffffff22 transparent}
+#msgs::-webkit-scrollbar{width:10px}#msgs::-webkit-scrollbar-thumb{background:#ffffff1f;border-radius:8px;border:2px solid transparent;background-clip:content-box}
+.m .ac{right:14px;top:-16px;gap:0;padding:2px;background:var(--bg2);border:1px solid #ffffff17;border-radius:8px;box-shadow:0 4px 14px #0006;z-index:3}
+.m .ac button{min-height:0;width:30px;height:28px;padding:0;background:transparent;border:0;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;box-shadow:none}
+.m .ac button:hover{background:#ffffff1a}
+.m .ac button:last-child:hover{background:#ed424533}
+.m .tm{font-size:.72rem;color:var(--mu);margin-left:8px;font-weight:400}
+.m.pinged{background:#faa81a14!important;box-shadow:inset 3px 0 0 #faa81a;border-radius:4px}
+.m.pinged:hover{background:#faa81a1f!important}
+.m .rp{font-size:.8rem;color:var(--mu);border-left:2px solid #ffffff2a;padding-left:8px;margin-bottom:2px}
+.rx{border-radius:8px;padding:2px 7px;background:#ffffff0d;border:1px solid transparent}
+.rx.me{background:#5865f226;border-color:#5865f2aa}
+.dsep{display:flex;align-items:center;gap:10px;margin:14px 0 6px;color:var(--mu);font-size:.72rem;font-weight:600;user-select:none}
+.dsep::before,.dsep::after{content:"";flex:1;height:1px;background:#ffffff1c}
+#jmp9{position:fixed;transform:translate(-50%,10px);z-index:40;opacity:0;pointer-events:none;border:0;border-radius:999px;padding:7px 16px;background:#5865f2;color:#fff;font-weight:600;font-size:.82rem;box-shadow:0 6px 20px #0008;transition:opacity .18s,transform .18s;min-height:0}
+#jmp9.on{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+body.drop9::after{content:"Datei hier ablegen zum Hochladen";position:fixed;inset:12px;z-index:9999;display:flex;align-items:center;justify-content:center;border:3px dashed #5865f2;border-radius:18px;background:#0b0b0ecc;color:#fff;font-size:1.3rem;font-weight:700;pointer-events:none}
+/* v10: eigener Datei-Button & Checkboxen */
+.fpick{display:flex;align-items:center;gap:12px;padding:8px 10px;margin:4px 0;background:var(--bg3,#201742);border:1px dashed #8b5cf688;border-radius:16px;transition:border-color .15s,background .15s}
+.fpick:hover{border-color:#8b5cf6;background:#8b5cf61a}
+.fpick .fpb{flex:none;min-height:0;padding:9px 16px;border:0;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;font-weight:700;font-size:.9rem;box-shadow:0 4px 14px #7c3aed55;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.fpick .fpb:active{transform:scale(.96)}
+.fpick .fpn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mu,#a099c4);font-size:.88rem}
+.fpick.has .fpn{color:var(--tx,#fff)}
+.fpick .fpt{display:none;width:44px;height:44px;border-radius:12px;object-fit:cover;flex:none}
+.fpick.img .fpt{display:block}
+input[type=checkbox]{accent-color:#8b5cf6;width:20px;height:20px;border-radius:6px;cursor:pointer}
+/* v11: Mikrofon-Einstellungen */
+#m9{display:flex;flex-direction:column;gap:10px}
+#m9 label{display:flex;flex-direction:column;gap:4px;font-size:.9rem}
+#m9 label.m9chk{flex-direction:row;align-items:center;gap:10px}
+#m9 label b{float:right;color:var(--mu,#a099c4);font-weight:600}
+#m9 select{width:100%}
+#m9 input[type=range]{width:100%;accent-color:#8b5cf6}
+#m9 hr{border:0;border-top:1px solid #ffffff17;margin:2px 0;width:100%}
+.m9meter{position:relative;height:16px;border-radius:10px;background:#ffffff12;overflow:hidden}
+.m9meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3ba55d,#57f287);border-radius:10px;transition:width .06s linear}
+.m9meter i.mid{background:linear-gradient(90deg,#3ba55d,#faa81a)}
+.m9meter i.hot{background:linear-gradient(90deg,#faa81a,#ed4245)}
+.m9meter u{position:absolute;top:0;bottom:0;width:3px;background:#fff;opacity:.85;text-decoration:none;left:0}
+.m9row{display:flex;gap:8px;flex-wrap:wrap}.m9row button{flex:1}
+.m9entry{width:100%;margin:6px 0}
+
+/* v12: Öffentliche Server & Server-Banner */
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:10px;max-height:62vh;overflow:auto;padding:2px}
+.dcard{position:relative;background:var(--bg3,#201742);border:1px solid #ffffff14;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:transform .15s,border-color .15s}
+.dcard:hover{transform:translateY(-2px);border-color:#8b5cf688}
+.dbn{height:84px;background:linear-gradient(135deg,#6d3fd9,#38bdf8) center/cover}
+.dic{position:absolute;top:56px;left:14px;width:56px;height:56px;border-radius:18px;border:4px solid var(--bg3,#201742);background:#5865f2 center/cover;color:#fff;font-weight:800;font-size:1.4rem;display:flex;align-items:center;justify-content:center}
+.dbd{padding:34px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.dnm{font-size:1.02rem}
+.dds{margin:0;font-size:.85rem;color:var(--mu,#a099c4);flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.dft{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.82rem;color:var(--mu,#a099c4)}
+.dft button{min-height:0;padding:7px 14px}
+.sbn{height:90px;border-radius:14px;background:#ffffff0f center/cover;display:flex;align-items:center;justify-content:center;color:var(--mu,#a099c4);font-size:.85rem;margin-bottom:8px}
